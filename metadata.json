@@ -1,0 +1,6 @@
+{
+  "name": "WXOps Synop Report",
+  "description": "SYNOP observation processor and daily weather report generator for operational meteorology.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

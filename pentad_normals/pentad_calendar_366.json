@@ -1,0 +1,1832 @@
+{
+  "01-01": {
+    "pentad_id": 1,
+    "doy_standard": 1,
+    "date_range": "Jan 01 - Jan 05"
+  },
+  "01-02": {
+    "pentad_id": 1,
+    "doy_standard": 2,
+    "date_range": "Jan 01 - Jan 05"
+  },
+  "01-03": {
+    "pentad_id": 1,
+    "doy_standard": 3,
+    "date_range": "Jan 01 - Jan 05"
+  },
+  "01-04": {
+    "pentad_id": 1,
+    "doy_standard": 4,
+    "date_range": "Jan 01 - Jan 05"
+  },
+  "01-05": {
+    "pentad_id": 1,
+    "doy_standard": 5,
+    "date_range": "Jan 01 - Jan 05"
+  },
+  "01-06": {
+    "pentad_id": 2,
+    "doy_standard": 6,
+    "date_range": "Jan 06 - Jan 10"
+  },
+  "01-07": {
+    "pentad_id": 2,
+    "doy_standard": 7,
+    "date_range": "Jan 06 - Jan 10"
+  },
+  "01-08": {
+    "pentad_id": 2,
+    "doy_standard": 8,
+    "date_range": "Jan 06 - Jan 10"
+  },
+  "01-09": {
+    "pentad_id": 2,
+    "doy_standard": 9,
+    "date_range": "Jan 06 - Jan 10"
+  },
+  "01-10": {
+    "pentad_id": 2,
+    "doy_standard": 10,
+    "date_range": "Jan 06 - Jan 10"
+  },
+  "01-11": {
+    "pentad_id": 3,
+    "doy_standard": 11,
+    "date_range": "Jan 11 - Jan 15"
+  },
+  "01-12": {
+    "pentad_id": 3,
+    "doy_standard": 12,
+    "date_range": "Jan 11 - Jan 15"
+  },
+  "01-13": {
+    "pentad_id": 3,
+    "doy_standard": 13,
+    "date_range": "Jan 11 - Jan 15"
+  },
+  "01-14": {
+    "pentad_id": 3,
+    "doy_standard": 14,
+    "date_range": "Jan 11 - Jan 15"
+  },
+  "01-15": {
+    "pentad_id": 3,
+    "doy_standard": 15,
+    "date_range": "Jan 11 - Jan 15"
+  },
+  "01-16": {
+    "pentad_id": 4,
+    "doy_standard": 16,
+    "date_range": "Jan 16 - Jan 20"
+  },
+  "01-17": {
+    "pentad_id": 4,
+    "doy_standard": 17,
+    "date_range": "Jan 16 - Jan 20"
+  },
+  "01-18": {
+    "pentad_id": 4,
+    "doy_standard": 18,
+    "date_range": "Jan 16 - Jan 20"
+  },
+  "01-19": {
+    "pentad_id": 4,
+    "doy_standard": 19,
+    "date_range": "Jan 16 - Jan 20"
+  },
+  "01-20": {
+    "pentad_id": 4,
+    "doy_standard": 20,
+    "date_range": "Jan 16 - Jan 20"
+  },
+  "01-21": {
+    "pentad_id": 5,
+    "doy_standard": 21,
+    "date_range": "Jan 21 - Jan 25"
+  },
+  "01-22": {
+    "pentad_id": 5,
+    "doy_standard": 22,
+    "date_range": "Jan 21 - Jan 25"
+  },
+  "01-23": {
+    "pentad_id": 5,
+    "doy_standard": 23,
+    "date_range": "Jan 21 - Jan 25"
+  },
+  "01-24": {
+    "pentad_id": 5,
+    "doy_standard": 24,
+    "date_range": "Jan 21 - Jan 25"
+  },
+  "01-25": {
+    "pentad_id": 5,
+    "doy_standard": 25,
+    "date_range": "Jan 21 - Jan 25"
+  },
+  "01-26": {
+    "pentad_id": 6,
+    "doy_standard": 26,
+    "date_range": "Jan 26 - Jan 30"
+  },
+  "01-27": {
+    "pentad_id": 6,
+    "doy_standard": 27,
+    "date_range": "Jan 26 - Jan 30"
+  },
+  "01-28": {
+    "pentad_id": 6,
+    "doy_standard": 28,
+    "date_range": "Jan 26 - Jan 30"
+  },
+  "01-29": {
+    "pentad_id": 6,
+    "doy_standard": 29,
+    "date_range": "Jan 26 - Jan 30"
+  },
+  "01-30": {
+    "pentad_id": 6,
+    "doy_standard": 30,
+    "date_range": "Jan 26 - Jan 30"
+  },
+  "01-31": {
+    "pentad_id": 7,
+    "doy_standard": 31,
+    "date_range": "Jan 31 - Feb 04"
+  },
+  "02-01": {
+    "pentad_id": 7,
+    "doy_standard": 32,
+    "date_range": "Jan 31 - Feb 04"
+  },
+  "02-02": {
+    "pentad_id": 7,
+    "doy_standard": 33,
+    "date_range": "Jan 31 - Feb 04"
+  },
+  "02-03": {
+    "pentad_id": 7,
+    "doy_standard": 34,
+    "date_range": "Jan 31 - Feb 04"
+  },
+  "02-04": {
+    "pentad_id": 7,
+    "doy_standard": 35,
+    "date_range": "Jan 31 - Feb 04"
+  },
+  "02-05": {
+    "pentad_id": 8,
+    "doy_standard": 36,
+    "date_range": "Feb 05 - Feb 09"
+  },
+  "02-06": {
+    "pentad_id": 8,
+    "doy_standard": 37,
+    "date_range": "Feb 05 - Feb 09"
+  },
+  "02-07": {
+    "pentad_id": 8,
+    "doy_standard": 38,
+    "date_range": "Feb 05 - Feb 09"
+  },
+  "02-08": {
+    "pentad_id": 8,
+    "doy_standard": 39,
+    "date_range": "Feb 05 - Feb 09"
+  },
+  "02-09": {
+    "pentad_id": 8,
+    "doy_standard": 40,
+    "date_range": "Feb 05 - Feb 09"
+  },
+  "02-10": {
+    "pentad_id": 9,
+    "doy_standard": 41,
+    "date_range": "Feb 10 - Feb 14"
+  },
+  "02-11": {
+    "pentad_id": 9,
+    "doy_standard": 42,
+    "date_range": "Feb 10 - Feb 14"
+  },
+  "02-12": {
+    "pentad_id": 9,
+    "doy_standard": 43,
+    "date_range": "Feb 10 - Feb 14"
+  },
+  "02-13": {
+    "pentad_id": 9,
+    "doy_standard": 44,
+    "date_range": "Feb 10 - Feb 14"
+  },
+  "02-14": {
+    "pentad_id": 9,
+    "doy_standard": 45,
+    "date_range": "Feb 10 - Feb 14"
+  },
+  "02-15": {
+    "pentad_id": 10,
+    "doy_standard": 46,
+    "date_range": "Feb 15 - Feb 19"
+  },
+  "02-16": {
+    "pentad_id": 10,
+    "doy_standard": 47,
+    "date_range": "Feb 15 - Feb 19"
+  },
+  "02-17": {
+    "pentad_id": 10,
+    "doy_standard": 48,
+    "date_range": "Feb 15 - Feb 19"
+  },
+  "02-18": {
+    "pentad_id": 10,
+    "doy_standard": 49,
+    "date_range": "Feb 15 - Feb 19"
+  },
+  "02-19": {
+    "pentad_id": 10,
+    "doy_standard": 50,
+    "date_range": "Feb 15 - Feb 19"
+  },
+  "02-20": {
+    "pentad_id": 11,
+    "doy_standard": 51,
+    "date_range": "Feb 20 - Feb 24"
+  },
+  "02-21": {
+    "pentad_id": 11,
+    "doy_standard": 52,
+    "date_range": "Feb 20 - Feb 24"
+  },
+  "02-22": {
+    "pentad_id": 11,
+    "doy_standard": 53,
+    "date_range": "Feb 20 - Feb 24"
+  },
+  "02-23": {
+    "pentad_id": 11,
+    "doy_standard": 54,
+    "date_range": "Feb 20 - Feb 24"
+  },
+  "02-24": {
+    "pentad_id": 11,
+    "doy_standard": 55,
+    "date_range": "Feb 20 - Feb 24"
+  },
+  "02-25": {
+    "pentad_id": 12,
+    "doy_standard": 56,
+    "date_range": "Feb 25 - Mar 01"
+  },
+  "02-26": {
+    "pentad_id": 12,
+    "doy_standard": 57,
+    "date_range": "Feb 25 - Mar 01"
+  },
+  "02-27": {
+    "pentad_id": 12,
+    "doy_standard": 58,
+    "date_range": "Feb 25 - Mar 01"
+  },
+  "02-28": {
+    "pentad_id": 12,
+    "doy_standard": 59,
+    "date_range": "Feb 25 - Mar 01"
+  },
+  "02-29": {
+    "pentad_id": 12,
+    "doy_standard": null,
+    "date_range": "Feb 25 - Mar 01"
+  },
+  "03-01": {
+    "pentad_id": 12,
+    "doy_standard": 60,
+    "date_range": "Feb 25 - Mar 01"
+  },
+  "03-02": {
+    "pentad_id": 13,
+    "doy_standard": 61,
+    "date_range": "Mar 02 - Mar 06"
+  },
+  "03-03": {
+    "pentad_id": 13,
+    "doy_standard": 62,
+    "date_range": "Mar 02 - Mar 06"
+  },
+  "03-04": {
+    "pentad_id": 13,
+    "doy_standard": 63,
+    "date_range": "Mar 02 - Mar 06"
+  },
+  "03-05": {
+    "pentad_id": 13,
+    "doy_standard": 64,
+    "date_range": "Mar 02 - Mar 06"
+  },
+  "03-06": {
+    "pentad_id": 13,
+    "doy_standard": 65,
+    "date_range": "Mar 02 - Mar 06"
+  },
+  "03-07": {
+    "pentad_id": 14,
+    "doy_standard": 66,
+    "date_range": "Mar 07 - Mar 11"
+  },
+  "03-08": {
+    "pentad_id": 14,
+    "doy_standard": 67,
+    "date_range": "Mar 07 - Mar 11"
+  },
+  "03-09": {
+    "pentad_id": 14,
+    "doy_standard": 68,
+    "date_range": "Mar 07 - Mar 11"
+  },
+  "03-10": {
+    "pentad_id": 14,
+    "doy_standard": 69,
+    "date_range": "Mar 07 - Mar 11"
+  },
+  "03-11": {
+    "pentad_id": 14,
+    "doy_standard": 70,
+    "date_range": "Mar 07 - Mar 11"
+  },
+  "03-12": {
+    "pentad_id": 15,
+    "doy_standard": 71,
+    "date_range": "Mar 12 - Mar 16"
+  },
+  "03-13": {
+    "pentad_id": 15,
+    "doy_standard": 72,
+    "date_range": "Mar 12 - Mar 16"
+  },
+  "03-14": {
+    "pentad_id": 15,
+    "doy_standard": 73,
+    "date_range": "Mar 12 - Mar 16"
+  },
+  "03-15": {
+    "pentad_id": 15,
+    "doy_standard": 74,
+    "date_range": "Mar 12 - Mar 16"
+  },
+  "03-16": {
+    "pentad_id": 15,
+    "doy_standard": 75,
+    "date_range": "Mar 12 - Mar 16"
+  },
+  "03-17": {
+    "pentad_id": 16,
+    "doy_standard": 76,
+    "date_range": "Mar 17 - Mar 21"
+  },
+  "03-18": {
+    "pentad_id": 16,
+    "doy_standard": 77,
+    "date_range": "Mar 17 - Mar 21"
+  },
+  "03-19": {
+    "pentad_id": 16,
+    "doy_standard": 78,
+    "date_range": "Mar 17 - Mar 21"
+  },
+  "03-20": {
+    "pentad_id": 16,
+    "doy_standard": 79,
+    "date_range": "Mar 17 - Mar 21"
+  },
+  "03-21": {
+    "pentad_id": 16,
+    "doy_standard": 80,
+    "date_range": "Mar 17 - Mar 21"
+  },
+  "03-22": {
+    "pentad_id": 17,
+    "doy_standard": 81,
+    "date_range": "Mar 22 - Mar 26"
+  },
+  "03-23": {
+    "pentad_id": 17,
+    "doy_standard": 82,
+    "date_range": "Mar 22 - Mar 26"
+  },
+  "03-24": {
+    "pentad_id": 17,
+    "doy_standard": 83,
+    "date_range": "Mar 22 - Mar 26"
+  },
+  "03-25": {
+    "pentad_id": 17,
+    "doy_standard": 84,
+    "date_range": "Mar 22 - Mar 26"
+  },
+  "03-26": {
+    "pentad_id": 17,
+    "doy_standard": 85,
+    "date_range": "Mar 22 - Mar 26"
+  },
+  "03-27": {
+    "pentad_id": 18,
+    "doy_standard": 86,
+    "date_range": "Mar 27 - Mar 31"
+  },
+  "03-28": {
+    "pentad_id": 18,
+    "doy_standard": 87,
+    "date_range": "Mar 27 - Mar 31"
+  },
+  "03-29": {
+    "pentad_id": 18,
+    "doy_standard": 88,
+    "date_range": "Mar 27 - Mar 31"
+  },
+  "03-30": {
+    "pentad_id": 18,
+    "doy_standard": 89,
+    "date_range": "Mar 27 - Mar 31"
+  },
+  "03-31": {
+    "pentad_id": 18,
+    "doy_standard": 90,
+    "date_range": "Mar 27 - Mar 31"
+  },
+  "04-01": {
+    "pentad_id": 19,
+    "doy_standard": 91,
+    "date_range": "Apr 01 - Apr 05"
+  },
+  "04-02": {
+    "pentad_id": 19,
+    "doy_standard": 92,
+    "date_range": "Apr 01 - Apr 05"
+  },
+  "04-03": {
+    "pentad_id": 19,
+    "doy_standard": 93,
+    "date_range": "Apr 01 - Apr 05"
+  },
+  "04-04": {
+    "pentad_id": 19,
+    "doy_standard": 94,
+    "date_range": "Apr 01 - Apr 05"
+  },
+  "04-05": {
+    "pentad_id": 19,
+    "doy_standard": 95,
+    "date_range": "Apr 01 - Apr 05"
+  },
+  "04-06": {
+    "pentad_id": 20,
+    "doy_standard": 96,
+    "date_range": "Apr 06 - Apr 10"
+  },
+  "04-07": {
+    "pentad_id": 20,
+    "doy_standard": 97,
+    "date_range": "Apr 06 - Apr 10"
+  },
+  "04-08": {
+    "pentad_id": 20,
+    "doy_standard": 98,
+    "date_range": "Apr 06 - Apr 10"
+  },
+  "04-09": {
+    "pentad_id": 20,
+    "doy_standard": 99,
+    "date_range": "Apr 06 - Apr 10"
+  },
+  "04-10": {
+    "pentad_id": 20,
+    "doy_standard": 100,
+    "date_range": "Apr 06 - Apr 10"
+  },
+  "04-11": {
+    "pentad_id": 21,
+    "doy_standard": 101,
+    "date_range": "Apr 11 - Apr 15"
+  },
+  "04-12": {
+    "pentad_id": 21,
+    "doy_standard": 102,
+    "date_range": "Apr 11 - Apr 15"
+  },
+  "04-13": {
+    "pentad_id": 21,
+    "doy_standard": 103,
+    "date_range": "Apr 11 - Apr 15"
+  },
+  "04-14": {
+    "pentad_id": 21,
+    "doy_standard": 104,
+    "date_range": "Apr 11 - Apr 15"
+  },
+  "04-15": {
+    "pentad_id": 21,
+    "doy_standard": 105,
+    "date_range": "Apr 11 - Apr 15"
+  },
+  "04-16": {
+    "pentad_id": 22,
+    "doy_standard": 106,
+    "date_range": "Apr 16 - Apr 20"
+  },
+  "04-17": {
+    "pentad_id": 22,
+    "doy_standard": 107,
+    "date_range": "Apr 16 - Apr 20"
+  },
+  "04-18": {
+    "pentad_id": 22,
+    "doy_standard": 108,
+    "date_range": "Apr 16 - Apr 20"
+  },
+  "04-19": {
+    "pentad_id": 22,
+    "doy_standard": 109,
+    "date_range": "Apr 16 - Apr 20"
+  },
+  "04-20": {
+    "pentad_id": 22,
+    "doy_standard": 110,
+    "date_range": "Apr 16 - Apr 20"
+  },
+  "04-21": {
+    "pentad_id": 23,
+    "doy_standard": 111,
+    "date_range": "Apr 21 - Apr 25"
+  },
+  "04-22": {
+    "pentad_id": 23,
+    "doy_standard": 112,
+    "date_range": "Apr 21 - Apr 25"
+  },
+  "04-23": {
+    "pentad_id": 23,
+    "doy_standard": 113,
+    "date_range": "Apr 21 - Apr 25"
+  },
+  "04-24": {
+    "pentad_id": 23,
+    "doy_standard": 114,
+    "date_range": "Apr 21 - Apr 25"
+  },
+  "04-25": {
+    "pentad_id": 23,
+    "doy_standard": 115,
+    "date_range": "Apr 21 - Apr 25"
+  },
+  "04-26": {
+    "pentad_id": 24,
+    "doy_standard": 116,
+    "date_range": "Apr 26 - Apr 30"
+  },
+  "04-27": {
+    "pentad_id": 24,
+    "doy_standard": 117,
+    "date_range": "Apr 26 - Apr 30"
+  },
+  "04-28": {
+    "pentad_id": 24,
+    "doy_standard": 118,
+    "date_range": "Apr 26 - Apr 30"
+  },
+  "04-29": {
+    "pentad_id": 24,
+    "doy_standard": 119,
+    "date_range": "Apr 26 - Apr 30"
+  },
+  "04-30": {
+    "pentad_id": 24,
+    "doy_standard": 120,
+    "date_range": "Apr 26 - Apr 30"
+  },
+  "05-01": {
+    "pentad_id": 25,
+    "doy_standard": 121,
+    "date_range": "May 01 - May 05"
+  },
+  "05-02": {
+    "pentad_id": 25,
+    "doy_standard": 122,
+    "date_range": "May 01 - May 05"
+  },
+  "05-03": {
+    "pentad_id": 25,
+    "doy_standard": 123,
+    "date_range": "May 01 - May 05"
+  },
+  "05-04": {
+    "pentad_id": 25,
+    "doy_standard": 124,
+    "date_range": "May 01 - May 05"
+  },
+  "05-05": {
+    "pentad_id": 25,
+    "doy_standard": 125,
+    "date_range": "May 01 - May 05"
+  },
+  "05-06": {
+    "pentad_id": 26,
+    "doy_standard": 126,
+    "date_range": "May 06 - May 10"
+  },
+  "05-07": {
+    "pentad_id": 26,
+    "doy_standard": 127,
+    "date_range": "May 06 - May 10"
+  },
+  "05-08": {
+    "pentad_id": 26,
+    "doy_standard": 128,
+    "date_range": "May 06 - May 10"
+  },
+  "05-09": {
+    "pentad_id": 26,
+    "doy_standard": 129,
+    "date_range": "May 06 - May 10"
+  },
+  "05-10": {
+    "pentad_id": 26,
+    "doy_standard": 130,
+    "date_range": "May 06 - May 10"
+  },
+  "05-11": {
+    "pentad_id": 27,
+    "doy_standard": 131,
+    "date_range": "May 11 - May 15"
+  },
+  "05-12": {
+    "pentad_id": 27,
+    "doy_standard": 132,
+    "date_range": "May 11 - May 15"
+  },
+  "05-13": {
+    "pentad_id": 27,
+    "doy_standard": 133,
+    "date_range": "May 11 - May 15"
+  },
+  "05-14": {
+    "pentad_id": 27,
+    "doy_standard": 134,
+    "date_range": "May 11 - May 15"
+  },
+  "05-15": {
+    "pentad_id": 27,
+    "doy_standard": 135,
+    "date_range": "May 11 - May 15"
+  },
+  "05-16": {
+    "pentad_id": 28,
+    "doy_standard": 136,
+    "date_range": "May 16 - May 20"
+  },
+  "05-17": {
+    "pentad_id": 28,
+    "doy_standard": 137,
+    "date_range": "May 16 - May 20"
+  },
+  "05-18": {
+    "pentad_id": 28,
+    "doy_standard": 138,
+    "date_range": "May 16 - May 20"
+  },
+  "05-19": {
+    "pentad_id": 28,
+    "doy_standard": 139,
+    "date_range": "May 16 - May 20"
+  },
+  "05-20": {
+    "pentad_id": 28,
+    "doy_standard": 140,
+    "date_range": "May 16 - May 20"
+  },
+  "05-21": {
+    "pentad_id": 29,
+    "doy_standard": 141,
+    "date_range": "May 21 - May 25"
+  },
+  "05-22": {
+    "pentad_id": 29,
+    "doy_standard": 142,
+    "date_range": "May 21 - May 25"
+  },
+  "05-23": {
+    "pentad_id": 29,
+    "doy_standard": 143,
+    "date_range": "May 21 - May 25"
+  },
+  "05-24": {
+    "pentad_id": 29,
+    "doy_standard": 144,
+    "date_range": "May 21 - May 25"
+  },
+  "05-25": {
+    "pentad_id": 29,
+    "doy_standard": 145,
+    "date_range": "May 21 - May 25"
+  },
+  "05-26": {
+    "pentad_id": 30,
+    "doy_standard": 146,
+    "date_range": "May 26 - May 30"
+  },
+  "05-27": {
+    "pentad_id": 30,
+    "doy_standard": 147,
+    "date_range": "May 26 - May 30"
+  },
+  "05-28": {
+    "pentad_id": 30,
+    "doy_standard": 148,
+    "date_range": "May 26 - May 30"
+  },
+  "05-29": {
+    "pentad_id": 30,
+    "doy_standard": 149,
+    "date_range": "May 26 - May 30"
+  },
+  "05-30": {
+    "pentad_id": 30,
+    "doy_standard": 150,
+    "date_range": "May 26 - May 30"
+  },
+  "05-31": {
+    "pentad_id": 31,
+    "doy_standard": 151,
+    "date_range": "May 31 - Jun 04"
+  },
+  "06-01": {
+    "pentad_id": 31,
+    "doy_standard": 152,
+    "date_range": "May 31 - Jun 04"
+  },
+  "06-02": {
+    "pentad_id": 31,
+    "doy_standard": 153,
+    "date_range": "May 31 - Jun 04"
+  },
+  "06-03": {
+    "pentad_id": 31,
+    "doy_standard": 154,
+    "date_range": "May 31 - Jun 04"
+  },
+  "06-04": {
+    "pentad_id": 31,
+    "doy_standard": 155,
+    "date_range": "May 31 - Jun 04"
+  },
+  "06-05": {
+    "pentad_id": 32,
+    "doy_standard": 156,
+    "date_range": "Jun 05 - Jun 09"
+  },
+  "06-06": {
+    "pentad_id": 32,
+    "doy_standard": 157,
+    "date_range": "Jun 05 - Jun 09"
+  },
+  "06-07": {
+    "pentad_id": 32,
+    "doy_standard": 158,
+    "date_range": "Jun 05 - Jun 09"
+  },
+  "06-08": {
+    "pentad_id": 32,
+    "doy_standard": 159,
+    "date_range": "Jun 05 - Jun 09"
+  },
+  "06-09": {
+    "pentad_id": 32,
+    "doy_standard": 160,
+    "date_range": "Jun 05 - Jun 09"
+  },
+  "06-10": {
+    "pentad_id": 33,
+    "doy_standard": 161,
+    "date_range": "Jun 10 - Jun 14"
+  },
+  "06-11": {
+    "pentad_id": 33,
+    "doy_standard": 162,
+    "date_range": "Jun 10 - Jun 14"
+  },
+  "06-12": {
+    "pentad_id": 33,
+    "doy_standard": 163,
+    "date_range": "Jun 10 - Jun 14"
+  },
+  "06-13": {
+    "pentad_id": 33,
+    "doy_standard": 164,
+    "date_range": "Jun 10 - Jun 14"
+  },
+  "06-14": {
+    "pentad_id": 33,
+    "doy_standard": 165,
+    "date_range": "Jun 10 - Jun 14"
+  },
+  "06-15": {
+    "pentad_id": 34,
+    "doy_standard": 166,
+    "date_range": "Jun 15 - Jun 19"
+  },
+  "06-16": {
+    "pentad_id": 34,
+    "doy_standard": 167,
+    "date_range": "Jun 15 - Jun 19"
+  },
+  "06-17": {
+    "pentad_id": 34,
+    "doy_standard": 168,
+    "date_range": "Jun 15 - Jun 19"
+  },
+  "06-18": {
+    "pentad_id": 34,
+    "doy_standard": 169,
+    "date_range": "Jun 15 - Jun 19"
+  },
+  "06-19": {
+    "pentad_id": 34,
+    "doy_standard": 170,
+    "date_range": "Jun 15 - Jun 19"
+  },
+  "06-20": {
+    "pentad_id": 35,
+    "doy_standard": 171,
+    "date_range": "Jun 20 - Jun 24"
+  },
+  "06-21": {
+    "pentad_id": 35,
+    "doy_standard": 172,
+    "date_range": "Jun 20 - Jun 24"
+  },
+  "06-22": {
+    "pentad_id": 35,
+    "doy_standard": 173,
+    "date_range": "Jun 20 - Jun 24"
+  },
+  "06-23": {
+    "pentad_id": 35,
+    "doy_standard": 174,
+    "date_range": "Jun 20 - Jun 24"
+  },
+  "06-24": {
+    "pentad_id": 35,
+    "doy_standard": 175,
+    "date_range": "Jun 20 - Jun 24"
+  },
+  "06-25": {
+    "pentad_id": 36,
+    "doy_standard": 176,
+    "date_range": "Jun 25 - Jun 29"
+  },
+  "06-26": {
+    "pentad_id": 36,
+    "doy_standard": 177,
+    "date_range": "Jun 25 - Jun 29"
+  },
+  "06-27": {
+    "pentad_id": 36,
+    "doy_standard": 178,
+    "date_range": "Jun 25 - Jun 29"
+  },
+  "06-28": {
+    "pentad_id": 36,
+    "doy_standard": 179,
+    "date_range": "Jun 25 - Jun 29"
+  },
+  "06-29": {
+    "pentad_id": 36,
+    "doy_standard": 180,
+    "date_range": "Jun 25 - Jun 29"
+  },
+  "06-30": {
+    "pentad_id": 37,
+    "doy_standard": 181,
+    "date_range": "Jun 30 - Jul 04"
+  },
+  "07-01": {
+    "pentad_id": 37,
+    "doy_standard": 182,
+    "date_range": "Jun 30 - Jul 04"
+  },
+  "07-02": {
+    "pentad_id": 37,
+    "doy_standard": 183,
+    "date_range": "Jun 30 - Jul 04"
+  },
+  "07-03": {
+    "pentad_id": 37,
+    "doy_standard": 184,
+    "date_range": "Jun 30 - Jul 04"
+  },
+  "07-04": {
+    "pentad_id": 37,
+    "doy_standard": 185,
+    "date_range": "Jun 30 - Jul 04"
+  },
+  "07-05": {
+    "pentad_id": 38,
+    "doy_standard": 186,
+    "date_range": "Jul 05 - Jul 09"
+  },
+  "07-06": {
+    "pentad_id": 38,
+    "doy_standard": 187,
+    "date_range": "Jul 05 - Jul 09"
+  },
+  "07-07": {
+    "pentad_id": 38,
+    "doy_standard": 188,
+    "date_range": "Jul 05 - Jul 09"
+  },
+  "07-08": {
+    "pentad_id": 38,
+    "doy_standard": 189,
+    "date_range": "Jul 05 - Jul 09"
+  },
+  "07-09": {
+    "pentad_id": 38,
+    "doy_standard": 190,
+    "date_range": "Jul 05 - Jul 09"
+  },
+  "07-10": {
+    "pentad_id": 39,
+    "doy_standard": 191,
+    "date_range": "Jul 10 - Jul 14"
+  },
+  "07-11": {
+    "pentad_id": 39,
+    "doy_standard": 192,
+    "date_range": "Jul 10 - Jul 14"
+  },
+  "07-12": {
+    "pentad_id": 39,
+    "doy_standard": 193,
+    "date_range": "Jul 10 - Jul 14"
+  },
+  "07-13": {
+    "pentad_id": 39,
+    "doy_standard": 194,
+    "date_range": "Jul 10 - Jul 14"
+  },
+  "07-14": {
+    "pentad_id": 39,
+    "doy_standard": 195,
+    "date_range": "Jul 10 - Jul 14"
+  },
+  "07-15": {
+    "pentad_id": 40,
+    "doy_standard": 196,
+    "date_range": "Jul 15 - Jul 19"
+  },
+  "07-16": {
+    "pentad_id": 40,
+    "doy_standard": 197,
+    "date_range": "Jul 15 - Jul 19"
+  },
+  "07-17": {
+    "pentad_id": 40,
+    "doy_standard": 198,
+    "date_range": "Jul 15 - Jul 19"
+  },
+  "07-18": {
+    "pentad_id": 40,
+    "doy_standard": 199,
+    "date_range": "Jul 15 - Jul 19"
+  },
+  "07-19": {
+    "pentad_id": 40,
+    "doy_standard": 200,
+    "date_range": "Jul 15 - Jul 19"
+  },
+  "07-20": {
+    "pentad_id": 41,
+    "doy_standard": 201,
+    "date_range": "Jul 20 - Jul 24"
+  },
+  "07-21": {
+    "pentad_id": 41,
+    "doy_standard": 202,
+    "date_range": "Jul 20 - Jul 24"
+  },
+  "07-22": {
+    "pentad_id": 41,
+    "doy_standard": 203,
+    "date_range": "Jul 20 - Jul 24"
+  },
+  "07-23": {
+    "pentad_id": 41,
+    "doy_standard": 204,
+    "date_range": "Jul 20 - Jul 24"
+  },
+  "07-24": {
+    "pentad_id": 41,
+    "doy_standard": 205,
+    "date_range": "Jul 20 - Jul 24"
+  },
+  "07-25": {
+    "pentad_id": 42,
+    "doy_standard": 206,
+    "date_range": "Jul 25 - Jul 29"
+  },
+  "07-26": {
+    "pentad_id": 42,
+    "doy_standard": 207,
+    "date_range": "Jul 25 - Jul 29"
+  },
+  "07-27": {
+    "pentad_id": 42,
+    "doy_standard": 208,
+    "date_range": "Jul 25 - Jul 29"
+  },
+  "07-28": {
+    "pentad_id": 42,
+    "doy_standard": 209,
+    "date_range": "Jul 25 - Jul 29"
+  },
+  "07-29": {
+    "pentad_id": 42,
+    "doy_standard": 210,
+    "date_range": "Jul 25 - Jul 29"
+  },
+  "07-30": {
+    "pentad_id": 43,
+    "doy_standard": 211,
+    "date_range": "Jul 30 - Aug 03"
+  },
+  "07-31": {
+    "pentad_id": 43,
+    "doy_standard": 212,
+    "date_range": "Jul 30 - Aug 03"
+  },
+  "08-01": {
+    "pentad_id": 43,
+    "doy_standard": 213,
+    "date_range": "Jul 30 - Aug 03"
+  },
+  "08-02": {
+    "pentad_id": 43,
+    "doy_standard": 214,
+    "date_range": "Jul 30 - Aug 03"
+  },
+  "08-03": {
+    "pentad_id": 43,
+    "doy_standard": 215,
+    "date_range": "Jul 30 - Aug 03"
+  },
+  "08-04": {
+    "pentad_id": 44,
+    "doy_standard": 216,
+    "date_range": "Aug 04 - Aug 08"
+  },
+  "08-05": {
+    "pentad_id": 44,
+    "doy_standard": 217,
+    "date_range": "Aug 04 - Aug 08"
+  },
+  "08-06": {
+    "pentad_id": 44,
+    "doy_standard": 218,
+    "date_range": "Aug 04 - Aug 08"
+  },
+  "08-07": {
+    "pentad_id": 44,
+    "doy_standard": 219,
+    "date_range": "Aug 04 - Aug 08"
+  },
+  "08-08": {
+    "pentad_id": 44,
+    "doy_standard": 220,
+    "date_range": "Aug 04 - Aug 08"
+  },
+  "08-09": {
+    "pentad_id": 45,
+    "doy_standard": 221,
+    "date_range": "Aug 09 - Aug 13"
+  },
+  "08-10": {
+    "pentad_id": 45,
+    "doy_standard": 222,
+    "date_range": "Aug 09 - Aug 13"
+  },
+  "08-11": {
+    "pentad_id": 45,
+    "doy_standard": 223,
+    "date_range": "Aug 09 - Aug 13"
+  },
+  "08-12": {
+    "pentad_id": 45,
+    "doy_standard": 224,
+    "date_range": "Aug 09 - Aug 13"
+  },
+  "08-13": {
+    "pentad_id": 45,
+    "doy_standard": 225,
+    "date_range": "Aug 09 - Aug 13"
+  },
+  "08-14": {
+    "pentad_id": 46,
+    "doy_standard": 226,
+    "date_range": "Aug 14 - Aug 18"
+  },
+  "08-15": {
+    "pentad_id": 46,
+    "doy_standard": 227,
+    "date_range": "Aug 14 - Aug 18"
+  },
+  "08-16": {
+    "pentad_id": 46,
+    "doy_standard": 228,
+    "date_range": "Aug 14 - Aug 18"
+  },
+  "08-17": {
+    "pentad_id": 46,
+    "doy_standard": 229,
+    "date_range": "Aug 14 - Aug 18"
+  },
+  "08-18": {
+    "pentad_id": 46,
+    "doy_standard": 230,
+    "date_range": "Aug 14 - Aug 18"
+  },
+  "08-19": {
+    "pentad_id": 47,
+    "doy_standard": 231,
+    "date_range": "Aug 19 - Aug 23"
+  },
+  "08-20": {
+    "pentad_id": 47,
+    "doy_standard": 232,
+    "date_range": "Aug 19 - Aug 23"
+  },
+  "08-21": {
+    "pentad_id": 47,
+    "doy_standard": 233,
+    "date_range": "Aug 19 - Aug 23"
+  },
+  "08-22": {
+    "pentad_id": 47,
+    "doy_standard": 234,
+    "date_range": "Aug 19 - Aug 23"
+  },
+  "08-23": {
+    "pentad_id": 47,
+    "doy_standard": 235,
+    "date_range": "Aug 19 - Aug 23"
+  },
+  "08-24": {
+    "pentad_id": 48,
+    "doy_standard": 236,
+    "date_range": "Aug 24 - Aug 28"
+  },
+  "08-25": {
+    "pentad_id": 48,
+    "doy_standard": 237,
+    "date_range": "Aug 24 - Aug 28"
+  },
+  "08-26": {
+    "pentad_id": 48,
+    "doy_standard": 238,
+    "date_range": "Aug 24 - Aug 28"
+  },
+  "08-27": {
+    "pentad_id": 48,
+    "doy_standard": 239,
+    "date_range": "Aug 24 - Aug 28"
+  },
+  "08-28": {
+    "pentad_id": 48,
+    "doy_standard": 240,
+    "date_range": "Aug 24 - Aug 28"
+  },
+  "08-29": {
+    "pentad_id": 49,
+    "doy_standard": 241,
+    "date_range": "Aug 29 - Sep 02"
+  },
+  "08-30": {
+    "pentad_id": 49,
+    "doy_standard": 242,
+    "date_range": "Aug 29 - Sep 02"
+  },
+  "08-31": {
+    "pentad_id": 49,
+    "doy_standard": 243,
+    "date_range": "Aug 29 - Sep 02"
+  },
+  "09-01": {
+    "pentad_id": 49,
+    "doy_standard": 244,
+    "date_range": "Aug 29 - Sep 02"
+  },
+  "09-02": {
+    "pentad_id": 49,
+    "doy_standard": 245,
+    "date_range": "Aug 29 - Sep 02"
+  },
+  "09-03": {
+    "pentad_id": 50,
+    "doy_standard": 246,
+    "date_range": "Sep 03 - Sep 07"
+  },
+  "09-04": {
+    "pentad_id": 50,
+    "doy_standard": 247,
+    "date_range": "Sep 03 - Sep 07"
+  },
+  "09-05": {
+    "pentad_id": 50,
+    "doy_standard": 248,
+    "date_range": "Sep 03 - Sep 07"
+  },
+  "09-06": {
+    "pentad_id": 50,
+    "doy_standard": 249,
+    "date_range": "Sep 03 - Sep 07"
+  },
+  "09-07": {
+    "pentad_id": 50,
+    "doy_standard": 250,
+    "date_range": "Sep 03 - Sep 07"
+  },
+  "09-08": {
+    "pentad_id": 51,
+    "doy_standard": 251,
+    "date_range": "Sep 08 - Sep 12"
+  },
+  "09-09": {
+    "pentad_id": 51,
+    "doy_standard": 252,
+    "date_range": "Sep 08 - Sep 12"
+  },
+  "09-10": {
+    "pentad_id": 51,
+    "doy_standard": 253,
+    "date_range": "Sep 08 - Sep 12"
+  },
+  "09-11": {
+    "pentad_id": 51,
+    "doy_standard": 254,
+    "date_range": "Sep 08 - Sep 12"
+  },
+  "09-12": {
+    "pentad_id": 51,
+    "doy_standard": 255,
+    "date_range": "Sep 08 - Sep 12"
+  },
+  "09-13": {
+    "pentad_id": 52,
+    "doy_standard": 256,
+    "date_range": "Sep 13 - Sep 17"
+  },
+  "09-14": {
+    "pentad_id": 52,
+    "doy_standard": 257,
+    "date_range": "Sep 13 - Sep 17"
+  },
+  "09-15": {
+    "pentad_id": 52,
+    "doy_standard": 258,
+    "date_range": "Sep 13 - Sep 17"
+  },
+  "09-16": {
+    "pentad_id": 52,
+    "doy_standard": 259,
+    "date_range": "Sep 13 - Sep 17"
+  },
+  "09-17": {
+    "pentad_id": 52,
+    "doy_standard": 260,
+    "date_range": "Sep 13 - Sep 17"
+  },
+  "09-18": {
+    "pentad_id": 53,
+    "doy_standard": 261,
+    "date_range": "Sep 18 - Sep 22"
+  },
+  "09-19": {
+    "pentad_id": 53,
+    "doy_standard": 262,
+    "date_range": "Sep 18 - Sep 22"
+  },
+  "09-20": {
+    "pentad_id": 53,
+    "doy_standard": 263,
+    "date_range": "Sep 18 - Sep 22"
+  },
+  "09-21": {
+    "pentad_id": 53,
+    "doy_standard": 264,
+    "date_range": "Sep 18 - Sep 22"
+  },
+  "09-22": {
+    "pentad_id": 53,
+    "doy_standard": 265,
+    "date_range": "Sep 18 - Sep 22"
+  },
+  "09-23": {
+    "pentad_id": 54,
+    "doy_standard": 266,
+    "date_range": "Sep 23 - Sep 27"
+  },
+  "09-24": {
+    "pentad_id": 54,
+    "doy_standard": 267,
+    "date_range": "Sep 23 - Sep 27"
+  },
+  "09-25": {
+    "pentad_id": 54,
+    "doy_standard": 268,
+    "date_range": "Sep 23 - Sep 27"
+  },
+  "09-26": {
+    "pentad_id": 54,
+    "doy_standard": 269,
+    "date_range": "Sep 23 - Sep 27"
+  },
+  "09-27": {
+    "pentad_id": 54,
+    "doy_standard": 270,
+    "date_range": "Sep 23 - Sep 27"
+  },
+  "09-28": {
+    "pentad_id": 55,
+    "doy_standard": 271,
+    "date_range": "Sep 28 - Oct 02"
+  },
+  "09-29": {
+    "pentad_id": 55,
+    "doy_standard": 272,
+    "date_range": "Sep 28 - Oct 02"
+  },
+  "09-30": {
+    "pentad_id": 55,
+    "doy_standard": 273,
+    "date_range": "Sep 28 - Oct 02"
+  },
+  "10-01": {
+    "pentad_id": 55,
+    "doy_standard": 274,
+    "date_range": "Sep 28 - Oct 02"
+  },
+  "10-02": {
+    "pentad_id": 55,
+    "doy_standard": 275,
+    "date_range": "Sep 28 - Oct 02"
+  },
+  "10-03": {
+    "pentad_id": 56,
+    "doy_standard": 276,
+    "date_range": "Oct 03 - Oct 07"
+  },
+  "10-04": {
+    "pentad_id": 56,
+    "doy_standard": 277,
+    "date_range": "Oct 03 - Oct 07"
+  },
+  "10-05": {
+    "pentad_id": 56,
+    "doy_standard": 278,
+    "date_range": "Oct 03 - Oct 07"
+  },
+  "10-06": {
+    "pentad_id": 56,
+    "doy_standard": 279,
+    "date_range": "Oct 03 - Oct 07"
+  },
+  "10-07": {
+    "pentad_id": 56,
+    "doy_standard": 280,
+    "date_range": "Oct 03 - Oct 07"
+  },
+  "10-08": {
+    "pentad_id": 57,
+    "doy_standard": 281,
+    "date_range": "Oct 08 - Oct 12"
+  },
+  "10-09": {
+    "pentad_id": 57,
+    "doy_standard": 282,
+    "date_range": "Oct 08 - Oct 12"
+  },
+  "10-10": {
+    "pentad_id": 57,
+    "doy_standard": 283,
+    "date_range": "Oct 08 - Oct 12"
+  },
+  "10-11": {
+    "pentad_id": 57,
+    "doy_standard": 284,
+    "date_range": "Oct 08 - Oct 12"
+  },
+  "10-12": {
+    "pentad_id": 57,
+    "doy_standard": 285,
+    "date_range": "Oct 08 - Oct 12"
+  },
+  "10-13": {
+    "pentad_id": 58,
+    "doy_standard": 286,
+    "date_range": "Oct 13 - Oct 17"
+  },
+  "10-14": {
+    "pentad_id": 58,
+    "doy_standard": 287,
+    "date_range": "Oct 13 - Oct 17"
+  },
+  "10-15": {
+    "pentad_id": 58,
+    "doy_standard": 288,
+    "date_range": "Oct 13 - Oct 17"
+  },
+  "10-16": {
+    "pentad_id": 58,
+    "doy_standard": 289,
+    "date_range": "Oct 13 - Oct 17"
+  },
+  "10-17": {
+    "pentad_id": 58,
+    "doy_standard": 290,
+    "date_range": "Oct 13 - Oct 17"
+  },
+  "10-18": {
+    "pentad_id": 59,
+    "doy_standard": 291,
+    "date_range": "Oct 18 - Oct 22"
+  },
+  "10-19": {
+    "pentad_id": 59,
+    "doy_standard": 292,
+    "date_range": "Oct 18 - Oct 22"
+  },
+  "10-20": {
+    "pentad_id": 59,
+    "doy_standard": 293,
+    "date_range": "Oct 18 - Oct 22"
+  },
+  "10-21": {
+    "pentad_id": 59,
+    "doy_standard": 294,
+    "date_range": "Oct 18 - Oct 22"
+  },
+  "10-22": {
+    "pentad_id": 59,
+    "doy_standard": 295,
+    "date_range": "Oct 18 - Oct 22"
+  },
+  "10-23": {
+    "pentad_id": 60,
+    "doy_standard": 296,
+    "date_range": "Oct 23 - Oct 27"
+  },
+  "10-24": {
+    "pentad_id": 60,
+    "doy_standard": 297,
+    "date_range": "Oct 23 - Oct 27"
+  },
+  "10-25": {
+    "pentad_id": 60,
+    "doy_standard": 298,
+    "date_range": "Oct 23 - Oct 27"
+  },
+  "10-26": {
+    "pentad_id": 60,
+    "doy_standard": 299,
+    "date_range": "Oct 23 - Oct 27"
+  },
+  "10-27": {
+    "pentad_id": 60,
+    "doy_standard": 300,
+    "date_range": "Oct 23 - Oct 27"
+  },
+  "10-28": {
+    "pentad_id": 61,
+    "doy_standard": 301,
+    "date_range": "Oct 28 - Nov 01"
+  },
+  "10-29": {
+    "pentad_id": 61,
+    "doy_standard": 302,
+    "date_range": "Oct 28 - Nov 01"
+  },
+  "10-30": {
+    "pentad_id": 61,
+    "doy_standard": 303,
+    "date_range": "Oct 28 - Nov 01"
+  },
+  "10-31": {
+    "pentad_id": 61,
+    "doy_standard": 304,
+    "date_range": "Oct 28 - Nov 01"
+  },
+  "11-01": {
+    "pentad_id": 61,
+    "doy_standard": 305,
+    "date_range": "Oct 28 - Nov 01"
+  },
+  "11-02": {
+    "pentad_id": 62,
+    "doy_standard": 306,
+    "date_range": "Nov 02 - Nov 06"
+  },
+  "11-03": {
+    "pentad_id": 62,
+    "doy_standard": 307,
+    "date_range": "Nov 02 - Nov 06"
+  },
+  "11-04": {
+    "pentad_id": 62,
+    "doy_standard": 308,
+    "date_range": "Nov 02 - Nov 06"
+  },
+  "11-05": {
+    "pentad_id": 62,
+    "doy_standard": 309,
+    "date_range": "Nov 02 - Nov 06"
+  },
+  "11-06": {
+    "pentad_id": 62,
+    "doy_standard": 310,
+    "date_range": "Nov 02 - Nov 06"
+  },
+  "11-07": {
+    "pentad_id": 63,
+    "doy_standard": 311,
+    "date_range": "Nov 07 - Nov 11"
+  },
+  "11-08": {
+    "pentad_id": 63,
+    "doy_standard": 312,
+    "date_range": "Nov 07 - Nov 11"
+  },
+  "11-09": {
+    "pentad_id": 63,
+    "doy_standard": 313,
+    "date_range": "Nov 07 - Nov 11"
+  },
+  "11-10": {
+    "pentad_id": 63,
+    "doy_standard": 314,
+    "date_range": "Nov 07 - Nov 11"
+  },
+  "11-11": {
+    "pentad_id": 63,
+    "doy_standard": 315,
+    "date_range": "Nov 07 - Nov 11"
+  },
+  "11-12": {
+    "pentad_id": 64,
+    "doy_standard": 316,
+    "date_range": "Nov 12 - Nov 16"
+  },
+  "11-13": {
+    "pentad_id": 64,
+    "doy_standard": 317,
+    "date_range": "Nov 12 - Nov 16"
+  },
+  "11-14": {
+    "pentad_id": 64,
+    "doy_standard": 318,
+    "date_range": "Nov 12 - Nov 16"
+  },
+  "11-15": {
+    "pentad_id": 64,
+    "doy_standard": 319,
+    "date_range": "Nov 12 - Nov 16"
+  },
+  "11-16": {
+    "pentad_id": 64,
+    "doy_standard": 320,
+    "date_range": "Nov 12 - Nov 16"
+  },
+  "11-17": {
+    "pentad_id": 65,
+    "doy_standard": 321,
+    "date_range": "Nov 17 - Nov 21"
+  },
+  "11-18": {
+    "pentad_id": 65,
+    "doy_standard": 322,
+    "date_range": "Nov 17 - Nov 21"
+  },
+  "11-19": {
+    "pentad_id": 65,
+    "doy_standard": 323,
+    "date_range": "Nov 17 - Nov 21"
+  },
+  "11-20": {
+    "pentad_id": 65,
+    "doy_standard": 324,
+    "date_range": "Nov 17 - Nov 21"
+  },
+  "11-21": {
+    "pentad_id": 65,
+    "doy_standard": 325,
+    "date_range": "Nov 17 - Nov 21"
+  },
+  "11-22": {
+    "pentad_id": 66,
+    "doy_standard": 326,
+    "date_range": "Nov 22 - Nov 26"
+  },
+  "11-23": {
+    "pentad_id": 66,
+    "doy_standard": 327,
+    "date_range": "Nov 22 - Nov 26"
+  },
+  "11-24": {
+    "pentad_id": 66,
+    "doy_standard": 328,
+    "date_range": "Nov 22 - Nov 26"
+  },
+  "11-25": {
+    "pentad_id": 66,
+    "doy_standard": 329,
+    "date_range": "Nov 22 - Nov 26"
+  },
+  "11-26": {
+    "pentad_id": 66,
+    "doy_standard": 330,
+    "date_range": "Nov 22 - Nov 26"
+  },
+  "11-27": {
+    "pentad_id": 67,
+    "doy_standard": 331,
+    "date_range": "Nov 27 - Dec 01"
+  },
+  "11-28": {
+    "pentad_id": 67,
+    "doy_standard": 332,
+    "date_range": "Nov 27 - Dec 01"
+  },
+  "11-29": {
+    "pentad_id": 67,
+    "doy_standard": 333,
+    "date_range": "Nov 27 - Dec 01"
+  },
+  "11-30": {
+    "pentad_id": 67,
+    "doy_standard": 334,
+    "date_range": "Nov 27 - Dec 01"
+  },
+  "12-01": {
+    "pentad_id": 67,
+    "doy_standard": 335,
+    "date_range": "Nov 27 - Dec 01"
+  },
+  "12-02": {
+    "pentad_id": 68,
+    "doy_standard": 336,
+    "date_range": "Dec 02 - Dec 06"
+  },
+  "12-03": {
+    "pentad_id": 68,
+    "doy_standard": 337,
+    "date_range": "Dec 02 - Dec 06"
+  },
+  "12-04": {
+    "pentad_id": 68,
+    "doy_standard": 338,
+    "date_range": "Dec 02 - Dec 06"
+  },
+  "12-05": {
+    "pentad_id": 68,
+    "doy_standard": 339,
+    "date_range": "Dec 02 - Dec 06"
+  },
+  "12-06": {
+    "pentad_id": 68,
+    "doy_standard": 340,
+    "date_range": "Dec 02 - Dec 06"
+  },
+  "12-07": {
+    "pentad_id": 69,
+    "doy_standard": 341,
+    "date_range": "Dec 07 - Dec 11"
+  },
+  "12-08": {
+    "pentad_id": 69,
+    "doy_standard": 342,
+    "date_range": "Dec 07 - Dec 11"
+  },
+  "12-09": {
+    "pentad_id": 69,
+    "doy_standard": 343,
+    "date_range": "Dec 07 - Dec 11"
+  },
+  "12-10": {
+    "pentad_id": 69,
+    "doy_standard": 344,
+    "date_range": "Dec 07 - Dec 11"
+  },
+  "12-11": {
+    "pentad_id": 69,
+    "doy_standard": 345,
+    "date_range": "Dec 07 - Dec 11"
+  },
+  "12-12": {
+    "pentad_id": 70,
+    "doy_standard": 346,
+    "date_range": "Dec 12 - Dec 16"
+  },
+  "12-13": {
+    "pentad_id": 70,
+    "doy_standard": 347,
+    "date_range": "Dec 12 - Dec 16"
+  },
+  "12-14": {
+    "pentad_id": 70,
+    "doy_standard": 348,
+    "date_range": "Dec 12 - Dec 16"
+  },
+  "12-15": {
+    "pentad_id": 70,
+    "doy_standard": 349,
+    "date_range": "Dec 12 - Dec 16"
+  },
+  "12-16": {
+    "pentad_id": 70,
+    "doy_standard": 350,
+    "date_range": "Dec 12 - Dec 16"
+  },
+  "12-17": {
+    "pentad_id": 71,
+    "doy_standard": 351,
+    "date_range": "Dec 17 - Dec 21"
+  },
+  "12-18": {
+    "pentad_id": 71,
+    "doy_standard": 352,
+    "date_range": "Dec 17 - Dec 21"
+  },
+  "12-19": {
+    "pentad_id": 71,
+    "doy_standard": 353,
+    "date_range": "Dec 17 - Dec 21"
+  },
+  "12-20": {
+    "pentad_id": 71,
+    "doy_standard": 354,
+    "date_range": "Dec 17 - Dec 21"
+  },
+  "12-21": {
+    "pentad_id": 71,
+    "doy_standard": 355,
+    "date_range": "Dec 17 - Dec 21"
+  },
+  "12-22": {
+    "pentad_id": 72,
+    "doy_standard": 356,
+    "date_range": "Dec 22 - Dec 26"
+  },
+  "12-23": {
+    "pentad_id": 72,
+    "doy_standard": 357,
+    "date_range": "Dec 22 - Dec 26"
+  },
+  "12-24": {
+    "pentad_id": 72,
+    "doy_standard": 358,
+    "date_range": "Dec 22 - Dec 26"
+  },
+  "12-25": {
+    "pentad_id": 72,
+    "doy_standard": 359,
+    "date_range": "Dec 22 - Dec 26"
+  },
+  "12-26": {
+    "pentad_id": 72,
+    "doy_standard": 360,
+    "date_range": "Dec 22 - Dec 26"
+  },
+  "12-27": {
+    "pentad_id": 73,
+    "doy_standard": 361,
+    "date_range": "Dec 27 - Dec 31"
+  },
+  "12-28": {
+    "pentad_id": 73,
+    "doy_standard": 362,
+    "date_range": "Dec 27 - Dec 31"
+  },
+  "12-29": {
+    "pentad_id": 73,
+    "doy_standard": 363,
+    "date_range": "Dec 27 - Dec 31"
+  },
+  "12-30": {
+    "pentad_id": 73,
+    "doy_standard": 364,
+    "date_range": "Dec 27 - Dec 31"
+  },
+  "12-31": {
+    "pentad_id": 73,
+    "doy_standard": 365,
+    "date_range": "Dec 27 - Dec 31"
+  }
+}

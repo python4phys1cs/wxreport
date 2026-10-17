@@ -1,0 +1,537 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { parseSynopBulletin, parse12UtcBulletin, type ParsedStationObservation } from '../parser/synopDecoder.ts';
+import {
+  enrichObservation,
+  getKolkataCalendarDetails,
+  getPreviousDayDateString,
+  calculateDeparture,
+  formatDeparture,
+  resolvePentad,
+  type EnrichedObservation,
+  type PentadNormalProvider,
+} from './climatology.ts';
+import {
+  calculateStationReportRows,
+  calculateSubdivisionReportSummary,
+  type StationInputData,
+  type StationReportRow,
+  type SubdivisionReportSummary,
+} from './reportCalculations.ts';
+import {
+  getStation,
+  getStationsBySubdivision,
+  getSubdivision,
+  SUBDIVISIONS,
+  type StationMetadata,
+  type SubdivisionMetadata,
+} from '../constants/stationRegistry.ts';
+import { DEFAULT_DISABLED_STATION_IDS } from '../utils/stationInclusion.ts';
+import type { ObservationStore, UtcSlot } from './observationStore.ts';
+
+/**
+ * Historical baseline observation contract for 24-hour comparisons.
+ */
+export interface HistoricalObservation {
+  stationId: string;
+  date: string; // YYYY-MM-DD
+  tmin?: number | null;
+  tmax?: number | null;
+  rainfall?: number | null;
+  rainfall0830?: number | null;
+  rainfall1730?: number | null;
+  rh0830?: number | null;
+  rh1730?: number | null;
+}
+
+/**
+ * Provider interface for retrieving historical observations.
+ */
+export interface HistoricalObservationProvider {
+  getObservation(stationId: string, date: string): HistoricalObservation | null;
+}
+
+/**
+ * Report data package for a single meteorological subdivision.
+ */
+export interface SubdivisionReportData {
+  subdivision: SubdivisionMetadata;
+  report1Rows: StationReportRow[];
+  report2Summary: SubdivisionReportSummary;
+  reportingStationsCount: number;
+  stationInputs?: StationInputData[];
+}
+
+/**
+ * Top-level operational reports result object.
+ */
+export interface OperationalReportsResult {
+  /** Reporting date (morning observation date D, YYYY-MM-DD) */
+  reportingDate: string;
+  /** Evening date for previous-day Tmax (D - 1, YYYY-MM-DD) */
+  eveningDate: string;
+  /** Enriched observations decoded from SYNOP */
+  enrichedObservations: EnrichedObservation[];
+  /** Subdivisions included in the report */
+  subdivisions: SubdivisionReportData[];
+  /** Unrecognized station IDs parsed from bulletin */
+  unrecognizedStationIds: string[];
+  /** Station codes excluded from reports (e.g. Ashoknagar) */
+  excludedStationIds?: string[];
+  /** Original raw bulletin for traceability */
+  rawBulletin: string;
+  /** Operational UTC slot for this report run */
+  utcSlot?: UtcSlot;
+}
+
+/**
+ * Default operational subdivisions for RMC Nagpur daily reports:
+ * 19: West MP, 20: East MP, 26: Vidarbha, 27: Chattisgarh
+ */
+export const DEFAULT_REPORT_SUBDIVISION_IDS: readonly string[] = Object.freeze([
+  '19', '20', '26', '27'
+]);
+
+/**
+ * All 7 meteorological subdivisions covered across canonical registry:
+ * 19: West MP, 20: East MP, 26: Vidarbha, 27: Chattisgarh,
+ * 25: Marathwada, 24: Madhya Maharashtra, 23: Konkan & Goa
+ */
+export const ALL_SUBDIVISION_IDS: readonly string[] = Object.freeze([
+  '19', '20', '26', '27', '25', '24', '23'
+]);
+
+/**
+ * Options for report orchestration.
+ */
+export interface OrchestratorOptions {
+  /** Target subdivision IDs to generate reports for (defaults to 19, 20, 26, 27) */
+  subdivisionIds?: readonly (string | number)[];
+  /** Station ordering variant: 'web' (default) or 'print' (reordered Vidarbha) */
+  orderVariant?: 'web' | 'print';
+  /** Active UTC slot ('03Z' | '12Z') */
+  utcSlot?: UtcSlot;
+  /** In-memory or persistent observation store */
+  observationStore?: ObservationStore;
+  /** If true, treats the bulletin as a station revision (updates only included stations) */
+  isRevision?: boolean;
+  /** Station codes to exclude from report outputs (display, rows, extremes, summaries) */
+  excludedStationIds?: readonly string[] | Set<string>;
+}
+
+/**
+ * Primary Report Data Orchestration Pipeline:
+ *
+ * Raw SYNOP text (or Persistent Store)
+ *   ↓
+ * SYNOP extraction/decoding
+ *   ↓
+ * Persistent state update
+ *   ↓
+ * Climatological enrichment
+ *   ↓
+ * Merge with historical comparison data
+ *   ↓
+ * Station-level Report 1 calculations
+ *   ↓
+ * Subdivision-level Report 2 calculations
+ *   ↓
+ * Structured report data
+ */
+export function generateDailyReports(
+  rawSynopText: string,
+  reportingDate: Date | string,
+  normalProvider?: PentadNormalProvider,
+  historicalProvider?: HistoricalObservationProvider,
+  options: OrchestratorOptions = {}
+): OperationalReportsResult {
+  // 1. Resolve calendar dates
+  const { dateStr: reportingDateStr, month } = getKolkataCalendarDetails(reportingDate);
+  const eveningDateStr = getPreviousDayDateString(reportingDateStr);
+  const dateEveningPriorStr = getPreviousDayDateString(eveningDateStr);
+  const utcSlot: UtcSlot = options.utcSlot ?? '03Z';
+
+  // 2. Ingest into persistent store if provided
+  if (options.observationStore && rawSynopText && rawSynopText.trim()) {
+    if (options.isRevision) {
+      options.observationStore.ingestRevisedBulletin(utcSlot, rawSynopText, reportingDateStr);
+    } else {
+      options.observationStore.ingestBulletin(utcSlot, rawSynopText, reportingDateStr);
+    }
+  }
+
+  // 3. Resolve pentads for departure calculations
+  const pentadTmin = resolvePentad(reportingDateStr, 'tmin');
+  const pentadTmax = resolvePentad(reportingDateStr, 'tmax');
+
+  let enrichedObservations: EnrichedObservation[] = [];
+  const enrichedByStationId = new Map<string, EnrichedObservation>();
+  const unrecognizedStationIds: string[] = [];
+
+  if (options.observationStore) {
+    const allPersisted = options.observationStore.getAllObservations(reportingDateStr);
+    for (const [stnId, persisted] of allPersisted.entries()) {
+      const normalTmin = normalProvider?.getNormal(stnId, pentadTmin);
+      const normalTmax = normalProvider?.getNormal(stnId, pentadTmax);
+
+      let tminDep: string | null = null;
+      if (persisted.tmin !== null && persisted.tmin !== undefined && !isNaN(persisted.tmin)) {
+        tminDep =
+          normalTmin?.tmin !== null && normalTmin?.tmin !== undefined
+            ? formatDeparture(calculateDeparture(persisted.tmin, normalTmin.tmin))
+            : '---';
+      }
+
+      let tmaxDep: string | null = null;
+      if (persisted.tmax !== null && persisted.tmax !== undefined && !isNaN(persisted.tmax)) {
+        tmaxDep =
+          normalTmax?.tmax !== null && normalTmax?.tmax !== undefined
+            ? formatDeparture(calculateDeparture(persisted.tmax, normalTmax.tmax))
+            : '---';
+      }
+
+      const enriched: EnrichedObservation = {
+        stationId: stnId,
+        dateMorning: reportingDateStr,
+        dateEvening: eveningDateStr,
+        tmin: persisted.tmin,
+        tminDeparture: tminDep,
+        tmax: persisted.tmax,
+        tmaxDeparture: tmaxDep,
+        dryBulb: persisted.dryBulb0830 ?? persisted.dryBulb1730 ?? null,
+        dewPoint: persisted.dewPoint0830 ?? persisted.dewPoint1730 ?? null,
+        relativeHumidity: persisted.rh0830,
+        visibilityCode: persisted.visibilityCode,
+        rainfall: persisted.rainfall,
+        mslPressure: persisted.mslPressure0830 ?? persisted.mslPressure1730 ?? null,
+        rawSynop: persisted.rawSynop03Z ?? persisted.rawSynop12Z,
+      };
+
+      enrichedObservations.push(enriched);
+      enrichedByStationId.set(stnId, enriched);
+
+      if (!getStation(stnId) && !unrecognizedStationIds.includes(stnId)) {
+        unrecognizedStationIds.push(stnId);
+      }
+    }
+  } else {
+    // Direct stateless decoding (backward compatibility for isolated test suites)
+    if (utcSlot === '12Z') {
+      const parsed12 = parse12UtcBulletin(rawSynopText);
+      enrichedObservations = parsed12.map((parsed) => {
+        const normalTmax = normalProvider?.getNormal(parsed.stationId, pentadTmax);
+        let tmaxDep: string | null = null;
+        if (parsed.tmax !== null && parsed.tmax !== undefined && !isNaN(parsed.tmax)) {
+          tmaxDep = normalTmax?.tmax !== null && normalTmax?.tmax !== undefined
+            ? formatDeparture(calculateDeparture(parsed.tmax, normalTmax.tmax))
+            : '---';
+        }
+
+        return {
+          stationId: parsed.stationId,
+          dateMorning: reportingDateStr,
+          dateEvening: eveningDateStr,
+          tmin: null,
+          tminDeparture: null,
+          tmax: parsed.tmax ?? null,
+          tmaxDeparture: tmaxDep,
+          dryBulb: parsed.dryBulb ?? null,
+          dewPoint: parsed.dewPoint ?? null,
+          relativeHumidity: parsed.relativeHumidity ?? null,
+          visibilityCode: parsed.visibilityCode ?? null,
+          rainfall: parsed.rainfall ?? null,
+          mslPressure: parsed.mslPressure ?? null,
+          rawSynop: parsed.rawSynop,
+        };
+      });
+    } else {
+      const parsedObservations: ParsedStationObservation[] = parseSynopBulletin(rawSynopText);
+      enrichedObservations = parsedObservations.map((parsed) =>
+        enrichObservation(parsed, reportingDateStr, normalProvider)
+      );
+    }
+
+    for (const obs of enrichedObservations) {
+      enrichedByStationId.set(obs.stationId, obs);
+      if (!getStation(obs.stationId) && !unrecognizedStationIds.includes(obs.stationId)) {
+        unrecognizedStationIds.push(obs.stationId);
+      }
+    }
+  }
+
+  // 4. Determine target subdivisions and exclusions
+  const targetSubdivisionIds = (options.subdivisionIds ?? DEFAULT_REPORT_SUBDIVISION_IDS).map(String);
+  const orderVariant = options.orderVariant ?? 'web';
+  const excludedSet = options.excludedStationIds instanceof Set
+    ? options.excludedStationIds
+    : new Set(options.excludedStationIds ?? []);
+
+  const subdivisionResults: SubdivisionReportData[] = [];
+
+  for (const subId of targetSubdivisionIds) {
+    const subdivision = getSubdivision(subId);
+    if (!subdivision) continue;
+
+    const fullStationList: readonly StationMetadata[] = getStationsBySubdivision(subId, orderVariant);
+    const stationList: readonly StationMetadata[] = excludedSet.size > 0
+      ? fullStationList.filter((stn) => !excludedSet.has(stn.id))
+      : fullStationList;
+
+    // Prepare station input data merged with historical baseline and persistent store
+    const stationInputs: StationInputData[] = stationList.map((stnMeta) => {
+      const enriched = enrichedByStationId.get(stnMeta.id);
+      const persisted = options.observationStore?.getStationObservation(stnMeta.id, reportingDateStr);
+
+      // Prior 24h values:
+      const histDm2 =
+        options.observationStore?.getHistoricalObservation(stnMeta.id, eveningDateStr) ??
+        historicalProvider?.getObservation(stnMeta.id, eveningDateStr);
+      const histDe2 =
+        options.observationStore?.getHistoricalObservation(stnMeta.id, dateEveningPriorStr) ??
+        historicalProvider?.getObservation(stnMeta.id, dateEveningPriorStr);
+
+      return {
+        stationId: stnMeta.id,
+        stationName: stnMeta.name,
+
+        // Maximum Temperature (evening D - 1 or 12Z of D)
+        tmax: persisted ? persisted.tmax : (enriched?.tmax ?? null),
+        tmax24hPrior: histDe2?.tmax ?? histDm2?.tmax ?? null,
+        tmaxDepartureStr: enriched?.tmaxDeparture ?? null,
+
+        // Minimum Temperature (morning D)
+        tmin: persisted ? persisted.tmin : (enriched?.tmin ?? null),
+        tmin24hPrior: histDm2?.tmin ?? null,
+        tminDepartureStr: enriched?.tminDeparture ?? null,
+
+        // RH & Weather parameters
+        rh0830: persisted ? persisted.rh0830 : (enriched?.relativeHumidity ?? null),
+        rh1730: persisted
+          ? (persisted.rh1730 ?? histDm2?.rh1730 ?? null)
+          : (histDm2?.rh1730 ?? null),
+        visibilityCode: persisted
+          ? (persisted.visibilityCode ?? enriched?.visibilityCode ?? null)
+          : (enriched?.visibilityCode ?? null),
+        rainfall: persisted ? persisted.rainfall : (enriched?.rainfall ?? null),
+        rainfall0830: persisted
+          ? (persisted.rainfall0830 ?? (persisted.has03Z ? (persisted.rainfall ?? null) : null))
+          : (utcSlot === '12Z' ? null : (enriched?.rainfall ?? null)),
+        rainfall1730: persisted
+          ? (persisted.rainfall1730 ?? (persisted.has12Z ? (persisted.rainfall ?? null) : null))
+          : (utcSlot === '12Z' ? (enriched?.rainfall ?? null) : null),
+        manualEdits: persisted?.manualEdits,
+      };
+    });
+
+    // 5. Generate Report 1 station rows
+    const report1Rows: StationReportRow[] = calculateStationReportRows(stationInputs);
+
+    // 6. Generate Report 2 subdivision summary
+    const report2Summary: SubdivisionReportSummary = calculateSubdivisionReportSummary(
+      subdivision.id,
+      subdivision.name,
+      stationInputs,
+      month
+    );
+
+    const reportingCount = stationInputs.filter(
+      (s) =>
+        s.tmin !== null ||
+        s.tmax !== null ||
+        s.rainfall !== null ||
+        s.rh0830 !== null ||
+        s.rh1730 !== null ||
+        enrichedByStationId.has(s.stationId)
+    ).length;
+
+    subdivisionResults.push({
+      subdivision,
+      report1Rows,
+      report2Summary,
+      reportingStationsCount: reportingCount,
+      stationInputs,
+    });
+  }
+
+  return {
+    reportingDate: reportingDateStr,
+    eveningDate: eveningDateStr,
+    enrichedObservations,
+    subdivisions: subdivisionResults,
+    unrecognizedStationIds,
+    excludedStationIds: Array.from(excludedSet),
+    rawBulletin: rawSynopText,
+    utcSlot,
+  };
+}
+
+/**
+ * Recalculates operational report results after manual observation edits.
+ * Updates station rows, departures, 24-hour changes, extremes, and subdivision summaries
+ * using the exact canonical calculation engine.
+ */
+export function recalculateReportsResult(
+  currentResult: OperationalReportsResult,
+  stationEdits: Record<string, Partial<StationInputData>>,
+  normalProvider?: PentadNormalProvider
+): OperationalReportsResult {
+  const { month } = getKolkataCalendarDetails(currentResult.reportingDate);
+  const pentadTmin = resolvePentad(currentResult.reportingDate, 'tmin');
+  const pentadTmax = resolvePentad(currentResult.reportingDate, 'tmax');
+
+  const updatedSubdivisions: SubdivisionReportData[] = currentResult.subdivisions.map((subData) => {
+    // If no stationInputs stored, construct from report1Rows
+    const currentInputs: StationInputData[] = subData.stationInputs ?? subData.report1Rows.map((r) => ({
+      stationId: r.stationId,
+      stationName: r.stationName,
+      tmax: r.tmax,
+      tmax24hPrior: r.tmax24hChange !== null && r.tmax !== null ? r.tmax - r.tmax24hChange : null,
+      tmaxDepartureStr: r.tmaxDeparture,
+      tmin: r.tmin,
+      tmin24hPrior: r.tmin24hChange !== null && r.tmin !== null ? r.tmin - r.tmin24hChange : null,
+      tminDepartureStr: r.tminDeparture,
+      rh0830: r.rh0830,
+      rh1730: r.rh1730,
+      visibilityCode: null,
+      rainfall: r.rainfall,
+      rainfall0830: r.rainfall0830,
+      rainfall1730: r.rainfall1730,
+      manualEdits: r.manualEdits,
+    }));
+
+    const updatedInputs: StationInputData[] = currentInputs.map((stn) => {
+      const edit = stationEdits[stn.stationId];
+      if (!edit) return { ...stn };
+
+      const updated = { ...stn };
+      const nextEdits = { ...(stn.manualEdits || {}) };
+      for (const k of Object.keys(edit)) {
+        nextEdits[k] = true;
+      }
+      updated.manualEdits = nextEdits;
+
+      // 1. Tmax
+      if (edit.tmax !== undefined) {
+        updated.tmax = edit.tmax;
+        if (updated.tmax !== null && !isNaN(updated.tmax)) {
+          const norm = normalProvider?.getNormal(stn.stationId, pentadTmax);
+          updated.tmaxDepartureStr = norm?.tmax !== null && norm?.tmax !== undefined
+            ? formatDeparture(calculateDeparture(updated.tmax, norm.tmax))
+            : '---';
+        } else {
+          updated.tmaxDepartureStr = null;
+        }
+      }
+
+      // 2. Tmin
+      if (edit.tmin !== undefined) {
+        updated.tmin = edit.tmin;
+        if (updated.tmin !== null && !isNaN(updated.tmin)) {
+          const norm = normalProvider?.getNormal(stn.stationId, pentadTmin);
+          updated.tminDepartureStr = norm?.tmin !== null && norm?.tmin !== undefined
+            ? formatDeparture(calculateDeparture(updated.tmin, norm.tmin))
+            : '---';
+        } else {
+          updated.tminDepartureStr = null;
+        }
+      }
+
+      // 3. RH 0830
+      if (edit.rh0830 !== undefined) {
+        updated.rh0830 = edit.rh0830;
+      }
+
+      // 4. RH 1730
+      if (edit.rh1730 !== undefined) {
+        updated.rh1730 = edit.rh1730;
+      }
+
+      // 5. Rainfall
+      if (edit.rainfall !== undefined) {
+        updated.rainfall = edit.rainfall;
+        if (edit.rainfall0830 === undefined) {
+          updated.rainfall0830 = edit.rainfall;
+        }
+      }
+      if (edit.rainfall0830 !== undefined) {
+        updated.rainfall0830 = edit.rainfall0830;
+        if (edit.rainfall === undefined) {
+          updated.rainfall = edit.rainfall0830;
+        }
+      }
+      if (edit.rainfall1730 !== undefined) {
+        updated.rainfall1730 = edit.rainfall1730;
+      }
+
+      return updated;
+    });
+
+    const report1Rows = calculateStationReportRows(updatedInputs);
+    const report2Summary = calculateSubdivisionReportSummary(
+      subData.subdivision.id,
+      subData.subdivision.name,
+      updatedInputs,
+      month
+    );
+
+    const reportingStationsCount = updatedInputs.filter(
+      (s) =>
+        s.tmin !== null ||
+        s.tmax !== null ||
+        s.rainfall !== null ||
+        s.rainfall0830 !== null ||
+        s.rainfall1730 !== null ||
+        s.rh0830 !== null ||
+        s.rh1730 !== null
+    ).length;
+
+    return {
+      subdivision: subData.subdivision,
+      report1Rows,
+      report2Summary,
+      reportingStationsCount,
+      stationInputs: updatedInputs,
+    };
+  });
+
+  const updatedEnriched = currentResult.enrichedObservations.map((obs) => {
+    const edit = stationEdits[obs.stationId];
+    if (!edit) return obs;
+    const next = { ...obs };
+    if (edit.tmax !== undefined) {
+      next.tmax = edit.tmax;
+      if (edit.tmax !== null && !isNaN(edit.tmax)) {
+        const norm = normalProvider?.getNormal(obs.stationId, pentadTmax);
+        next.tmaxDeparture = norm?.tmax !== null && norm?.tmax !== undefined
+          ? formatDeparture(calculateDeparture(edit.tmax, norm.tmax))
+          : '---';
+      } else {
+        next.tmaxDeparture = null;
+      }
+    }
+    if (edit.tmin !== undefined) {
+      next.tmin = edit.tmin;
+      if (edit.tmin !== null && !isNaN(edit.tmin)) {
+        const norm = normalProvider?.getNormal(obs.stationId, pentadTmin);
+        next.tminDeparture = norm?.tmin !== null && norm?.tmin !== undefined
+          ? formatDeparture(calculateDeparture(edit.tmin, norm.tmin))
+          : '---';
+      } else {
+        next.tminDeparture = null;
+      }
+    }
+    if (edit.rh0830 !== undefined) next.relativeHumidity = edit.rh0830;
+    if (edit.rainfall !== undefined) next.rainfall = edit.rainfall;
+    if (edit.rainfall0830 !== undefined && edit.rainfall === undefined) next.rainfall = edit.rainfall0830;
+    return next;
+  });
+
+  return {
+    ...currentResult,
+    enrichedObservations: updatedEnriched,
+    subdivisions: updatedSubdivisions,
+  };
+}
