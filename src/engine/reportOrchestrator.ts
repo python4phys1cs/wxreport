@@ -185,13 +185,29 @@ export function generateDailyReports(
             : '---';
       }
 
+      const has12ZAvailable = Boolean(
+        persisted.has12Z ||
+        persisted.tmaxSlot === '12Z' ||
+        persisted.manualEdits?.tmax
+      );
+      const isTmaxAvailable = utcSlot === '12Z' || has12ZAvailable;
+      const effectiveTmax = isTmaxAvailable ? persisted.tmax : null;
+
       let tmaxDep: string | null = null;
-      if (persisted.tmax !== null && persisted.tmax !== undefined && !isNaN(persisted.tmax)) {
+      if (effectiveTmax !== null && effectiveTmax !== undefined && !isNaN(effectiveTmax)) {
         tmaxDep =
           normalTmax?.tmax !== null && normalTmax?.tmax !== undefined
-            ? formatDeparture(calculateDeparture(persisted.tmax, normalTmax.tmax))
+            ? formatDeparture(calculateDeparture(effectiveTmax, normalTmax.tmax))
             : '---';
       }
+
+      const effectiveRh1730 = (utcSlot === '12Z' || has12ZAvailable || persisted.manualEdits?.rh1730)
+        ? (persisted.rh1730 ?? null)
+        : null;
+
+      const effectiveRainfall1730 = (utcSlot === '12Z' || has12ZAvailable || persisted.manualEdits?.rainfall1730)
+        ? (persisted.rainfall1730 ?? null)
+        : null;
 
       const enriched: EnrichedObservation = {
         stationId: stnId,
@@ -199,14 +215,16 @@ export function generateDailyReports(
         dateEvening: eveningDateStr,
         tmin: persisted.tmin,
         tminDeparture: tminDep,
-        tmax: persisted.tmax,
+        tmax: effectiveTmax,
         tmaxDeparture: tmaxDep,
-        dryBulb: persisted.dryBulb0830 ?? persisted.dryBulb1730 ?? null,
-        dewPoint: persisted.dewPoint0830 ?? persisted.dewPoint1730 ?? null,
-        relativeHumidity: persisted.rh0830,
+        dryBulb: persisted.dryBulb0830 ?? (utcSlot === '12Z' ? persisted.dryBulb1730 : null) ?? null,
+        dewPoint: persisted.dewPoint0830 ?? (utcSlot === '12Z' ? persisted.dewPoint1730 : null) ?? null,
+        relativeHumidity: utcSlot === '12Z' ? (effectiveRh1730 ?? persisted.rh0830) : persisted.rh0830,
         visibilityCode: persisted.visibilityCode,
-        rainfall: persisted.rainfall,
-        mslPressure: persisted.mslPressure0830 ?? persisted.mslPressure1730 ?? null,
+        rainfall: utcSlot === '12Z'
+          ? (effectiveRainfall1730 ?? persisted.rainfall0830 ?? persisted.rainfall)
+          : (persisted.rainfall0830 ?? persisted.rainfall),
+        mslPressure: persisted.mslPressure0830 ?? (utcSlot === '12Z' ? persisted.mslPressure1730 : null) ?? null,
         rawSynop: persisted.rawSynop03Z ?? persisted.rawSynop12Z,
       };
 
@@ -293,35 +311,62 @@ export function generateDailyReports(
         options.observationStore?.getHistoricalObservation(stnMeta.id, dateEveningPriorStr) ??
         historicalProvider?.getObservation(stnMeta.id, dateEveningPriorStr);
 
+      const has12ZAvailable = Boolean(
+        persisted?.has12Z ||
+        persisted?.tmaxSlot === '12Z' ||
+        persisted?.manualEdits?.tmax
+      );
+      const isTmaxAvailable = utcSlot === '12Z' || (persisted ? has12ZAvailable : Boolean(enriched?.tmax !== null && enriched?.tmax !== undefined));
+      const currentTmax = isTmaxAvailable ? (persisted ? persisted.tmax : (enriched?.tmax ?? null)) : null;
+
+      // 24-hour Tmax change: compares current maximum with D0's 12Z maximum. If either is unavailable, null.
+      const tmax24hPrior = currentTmax !== null ? (histDm2?.tmax ?? histDe2?.tmax ?? null) : null;
+      const tmaxDepartureStr = currentTmax !== null ? (enriched?.tmaxDeparture ?? null) : null;
+
+      // Minimum Temperature: D1's 03Z observation
+      const currentTmin = persisted ? persisted.tmin : (enriched?.tmin ?? null);
+      // 24-hour Tmin change: compares current minimum with D0's 03Z minimum. If either is unavailable, null.
+      const tmin24hPrior = currentTmin !== null ? (histDm2?.tmin ?? null) : null;
+      const tminDepartureStr = currentTmin !== null ? (enriched?.tminDeparture ?? null) : null;
+
+      // RH at 0830 IST: Use D1's 03Z RH
+      const rh0830 = persisted ? persisted.rh0830 : (utcSlot === '03Z' ? (enriched?.relativeHumidity ?? null) : null);
+
+      // RH at 1730 IST: Show blank/--- when D1's 12Z observation is unavailable. Never substitute D0's evening RH!
+      const rh1730 = (utcSlot === '12Z' || has12ZAvailable || persisted?.manualEdits?.rh1730)
+        ? (persisted ? (persisted.rh1730 ?? null) : (utcSlot === '12Z' ? (enriched?.relativeHumidity ?? null) : null))
+        : null;
+
+      // Rainfall:
+      // Last 24 Hours up to 0830 hrs IST: Use D1's 03Z rainfall
+      const rainfall0830 = persisted
+        ? (persisted.rainfall0830 ?? (persisted.has03Z ? (persisted.rainfall ?? null) : null))
+        : (utcSlot === '12Z' ? null : (enriched?.rainfall ?? null));
+
+      // Last 9 Hours up to 1730 hrs IST: Show blank/--- until D1's 12Z rainfall is available
+      const rainfall1730 = (utcSlot === '12Z' || has12ZAvailable || persisted?.manualEdits?.rainfall1730)
+        ? (persisted ? (persisted.rainfall1730 ?? null) : (utcSlot === '12Z' ? (enriched?.rainfall ?? null) : null))
+        : null;
+
+      const activeRainfall = (utcSlot === '12Z')
+        ? (rainfall1730 ?? rainfall0830 ?? null)
+        : (rainfall0830 ?? null);
+
       return {
         stationId: stnMeta.id,
         stationName: stnMeta.name,
-
-        // Maximum Temperature (evening D - 1 or 12Z of D)
-        tmax: persisted ? persisted.tmax : (enriched?.tmax ?? null),
-        tmax24hPrior: histDe2?.tmax ?? histDm2?.tmax ?? null,
-        tmaxDepartureStr: enriched?.tmaxDeparture ?? null,
-
-        // Minimum Temperature (morning D)
-        tmin: persisted ? persisted.tmin : (enriched?.tmin ?? null),
-        tmin24hPrior: histDm2?.tmin ?? null,
-        tminDepartureStr: enriched?.tminDeparture ?? null,
-
-        // RH & Weather parameters
-        rh0830: persisted ? persisted.rh0830 : (enriched?.relativeHumidity ?? null),
-        rh1730: persisted
-          ? (persisted.rh1730 ?? histDm2?.rh1730 ?? null)
-          : (histDm2?.rh1730 ?? null),
-        visibilityCode: persisted
-          ? (persisted.visibilityCode ?? enriched?.visibilityCode ?? null)
-          : (enriched?.visibilityCode ?? null),
-        rainfall: persisted ? persisted.rainfall : (enriched?.rainfall ?? null),
-        rainfall0830: persisted
-          ? (persisted.rainfall0830 ?? (persisted.has03Z ? (persisted.rainfall ?? null) : null))
-          : (utcSlot === '12Z' ? null : (enriched?.rainfall ?? null)),
-        rainfall1730: persisted
-          ? (persisted.rainfall1730 ?? (persisted.has12Z ? (persisted.rainfall ?? null) : null))
-          : (utcSlot === '12Z' ? (enriched?.rainfall ?? null) : null),
+        tmax: currentTmax,
+        tmax24hPrior,
+        tmaxDepartureStr,
+        tmin: currentTmin,
+        tmin24hPrior,
+        tminDepartureStr,
+        rh0830,
+        rh1730,
+        visibilityCode: persisted?.visibilityCode ?? enriched?.visibilityCode ?? null,
+        rainfall: activeRainfall,
+        rainfall0830,
+        rainfall1730,
         manualEdits: persisted?.manualEdits,
       };
     });

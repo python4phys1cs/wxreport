@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { describe, it, beforeEach } from 'node:test';
+import { describe, it, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   InMemoryObservationStore,
@@ -18,6 +18,7 @@ import {
   SAMPLE_OPERATIONAL_12Z_SYNOP_BULLETIN,
 } from '../providers/fixtureProvider.ts';
 import archiveApiHandler from '../../api/observations/archive.ts';
+import { createSessionToken } from '../server/authService.ts';
 
 describe('Operational Observation Store & Ingestion Suite', () => {
   let store: InMemoryObservationStore;
@@ -155,9 +156,13 @@ describe('Operational Observation Store & Ingestion Suite', () => {
       assert.equal(stn.rh0830, 64);
       assert.equal(stn.rainfall, 1.2);
       assert.equal(stn.rainfall0830, 1.2);
-      // Retained previous 12Z fields (Tmax and RH 1730 remain until next 12Z):
-      assert.equal(stn.tmax, 41.2);
-      assert.equal(stn.rh1730, 37);
+      // 12Z fields remain unpopulated for Day 2 until 12Z arrives (never stale from Day 1):
+      assert.equal(stn.tmax, null);
+      assert.equal(stn.rh1730, null);
+      // Day 1 records remain intact and preserved in archive:
+      const day1Obs = store.getStationObservation('42933', '2026-01-05');
+      assert.equal(day1Obs?.tmax, 41.2);
+      assert.equal(day1Obs?.rh1730, 37);
 
       // --- STEP 4: Day 2, 12 UTC (2026-01-06 12Z) ---
       // Akola reports new Tmax = 42.5, new RH 1730 = 34%, rainfall = 0.0
@@ -304,8 +309,8 @@ describe('Operational Observation Store & Ingestion Suite', () => {
       assert.equal(gondia.rainfall, 2.5);
     });
 
-    it('retains 12Z Tmax and RH 1730 on next morning 03Z report', () => {
-      // Step 1: Day 1, 12 UTC (Tmax recorded at 1730 IST)
+    it('shows null for 12Z parameters on 03Z report when 12Z is unavailable, then updates on 12Z ingestion', () => {
+      // Step 1: Day 1, 12 UTC (Tmax recorded at 1730 IST: 41.2)
       generateDailyReports(
         '42933 32996 02502 10385 20210 40120 333 10412 58005 555 10000=',
         '2026-01-05',
@@ -317,7 +322,7 @@ describe('Operational Observation Store & Ingestion Suite', () => {
         }
       );
 
-      // Step 2: Day 2, 03 UTC (morning observation, reports Tmin 20.4, omits Tmax in 333)
+      // Step 2: Day 2, 03 UTC (morning observation: Tmin 20.4, RH0830 68)
       const resDay2_03z = generateDailyReports(
         '42933 32996 00000 10245 20180 40145 333 20204 58010 555 10000=',
         '2026-01-06',
@@ -329,17 +334,42 @@ describe('Operational Observation Store & Ingestion Suite', () => {
         }
       );
 
-      const vidarbha = resDay2_03z.subdivisions.find((s) => s.subdivision.id === '26');
-      const akola = vidarbha?.report1Rows.find((r) => r.stationId === '42933');
-      assert.ok(akola);
+      const vidarbha03Z = resDay2_03z.subdivisions.find((s) => s.subdivision.id === '26');
+      const akola03Z = vidarbha03Z?.report1Rows.find((r) => r.stationId === '42933');
+      assert.ok(akola03Z);
 
-      // New morning Tmin:
-      assert.equal(akola.tmin, 20.4);
-      assert.equal(akola.rh0830, 68);
-      // Previous day Tmax (persisted from Day 1 12Z):
-      assert.equal(akola.tmax, 41.2);
-      // Previous day RH 1730 (persisted from Day 1 12Z):
-      assert.equal(akola.rh1730, 37);
+      // Current morning parameters:
+      assert.equal(akola03Z.tmin, 20.4);
+      assert.equal(akola03Z.rh0830, 68);
+      // Day 2 Tmax is unavailable on 03Z before 12Z arrives:
+      assert.equal(akola03Z.tmax, null);
+      // RH 1730 is unavailable on 03Z (never substitutes previous day's evening RH):
+      assert.equal(akola03Z.rh1730, null);
+
+      // Step 3: Ingest Day 2, 12 UTC (Tmax 42.5, RH1730 35%)
+      const resDay2_12z = generateDailyReports(
+        '42933 32996 02502 10398 20215 40118 333 10425 58004 555 10000=',
+        '2026-01-06',
+        defaultPentadNormalProvider,
+        undefined,
+        {
+          utcSlot: '12Z',
+          observationStore: store,
+        }
+      );
+
+      const vidarbha12Z = resDay2_12z.subdivisions.find((s) => s.subdivision.id === '26');
+      const akola12Z = vidarbha12Z?.report1Rows.find((r) => r.stationId === '42933');
+      assert.ok(akola12Z);
+
+      // Retained morning values:
+      assert.equal(akola12Z.tmin, 20.4);
+      assert.equal(akola12Z.rh0830, 68);
+      // Newly updated 12Z values:
+      assert.equal(akola12Z.tmax, 42.5);
+      assert.equal(akola12Z.rh1730, 35);
+      // 24-hour Tmax change: 42.5 (Day 2 12Z) - 41.2 (Day 1 12Z) = +1.3
+      assert.equal(akola12Z.tmax24hChange, 1.3);
     });
   });
 
@@ -469,8 +499,9 @@ describe('Operational Observation Store & Ingestion Suite', () => {
 
       const day2 = store2.getStationObservation('42933', '2026-01-06');
       assert.ok(day2);
-      assert.equal(day2.tmin, 20.5);
-      assert.equal(day2.tmax, 41.5); // Persisted from 12Z
+      // Day 2 has only ingested 03Z (without Section 333 10xxx) and no 12Z observation;
+      // Per Rule 3, current-cycle unavailable values are never filled with stale values from previous dates.
+      assert.equal(day2.tmax, null);
     });
   });
 
@@ -531,10 +562,34 @@ describe('Operational Observation Store & Ingestion Suite', () => {
   });
 
   describe('10. Archive HTTP API Endpoint Contract (/api/observations/archive)', () => {
-    function createMockHttp(method: 'GET' | 'POST' | 'PUT', body?: unknown) {
-      const req = { method, body };
+    let origSupabaseUrl: string | undefined;
+    let origServiceKey: string | undefined;
+
+    beforeEach(() => {
+      origSupabaseUrl = process.env.SUPABASE_URL;
+      origServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      delete process.env.SUPABASE_URL;
+      delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+    });
+
+    afterEach(() => {
+      if (origSupabaseUrl !== undefined) process.env.SUPABASE_URL = origSupabaseUrl;
+      if (origServiceKey !== undefined) process.env.SUPABASE_SERVICE_ROLE_KEY = origServiceKey;
+    });
+
+    function createMockHttp(
+      method: 'GET' | 'POST' | 'PUT',
+      body?: unknown,
+      headersInput?: Record<string, string>,
+      noAuth: boolean = false
+    ) {
+      const headers: Record<string, string> = {
+        ...(noAuth ? {} : { authorization: `Bearer ${createSessionToken('AMSS Nagpur')}` }),
+        ...(headersInput || {}),
+      };
+      const req = { method, body, headers };
       let statusCode = 200;
-      const headers: Record<string, string> = {};
+      const responseHeaders: Record<string, string> = {};
       let responseBody: any = null;
 
       const res = {
@@ -543,7 +598,7 @@ describe('Operational Observation Store & Ingestion Suite', () => {
           return res;
         },
         setHeader(name: string, value: string) {
-          headers[name.toLowerCase()] = value;
+          responseHeaders[name.toLowerCase()] = value;
           return res;
         },
         send(data: string) {
@@ -560,10 +615,17 @@ describe('Operational Observation Store & Ingestion Suite', () => {
         req,
         res,
         getStatusCode: () => statusCode,
-        getHeaders: () => headers,
+        getHeaders: () => responseHeaders,
         getBody: () => responseBody,
       };
     }
+
+    it('rejects unauthenticated requests with 401', async () => {
+      const { req, res, getStatusCode, getBody } = createMockHttp('GET', undefined, undefined, true);
+      await archiveApiHandler(req, res);
+      assert.equal(getStatusCode(), 401);
+      assert.ok(getBody().error);
+    });
 
     it('GET returns 200 with JSON attachment and canonical archive payload', async () => {
       const { req, res, getStatusCode, getHeaders, getBody } = createMockHttp('GET');

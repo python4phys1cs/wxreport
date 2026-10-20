@@ -41,6 +41,7 @@ import {
 } from './components/HamburgerMenu.tsx';
 import { ReportToolbar } from './components/ReportToolbar.tsx';
 import { ObservationReminderModal } from './components/ObservationReminderModal.tsx';
+import { AboutModal } from './components/AboutSection.tsx';
 import type { EditableStationField } from './components/Report1StationTable.tsx';
 import {
   getAutoUtcSlot,
@@ -225,9 +226,10 @@ export default function App() {
     setActiveReminder(null);
   };
 
-  // 6. Navigation: single hamburger sidebar state
+  // 6. Navigation: single hamburger sidebar state & about modal
   const [activeReport, setActiveReport] = useState<ReportViewType>('consolidated');
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
+  const [isAboutOpen, setIsAboutOpen] = useState<boolean>(false);
 
   const [synopText, setSynopText] = useState<string>('');
   const [generationState, setGenerationState] = useState<GenerationState>('idle');
@@ -743,6 +745,7 @@ export default function App() {
         clockString={clockString}
         currentIdentity={currentIdentity}
         onLogout={handleLogout}
+        onOpenAbout={() => setIsAboutOpen(true)}
       />
 
       {/* Hamburger Sidebar (Reports & Integrated Settings) */}
@@ -777,6 +780,13 @@ export default function App() {
         onDeleteAllData={handleDeleteAllData}
         currentIdentity={currentIdentity}
         onLogout={handleLogout}
+        onOpenAbout={() => setIsAboutOpen(true)}
+      />
+
+      {/* About WXOps Modal */}
+      <AboutModal
+        isOpen={isAboutOpen}
+        onClose={() => setIsAboutOpen(false)}
       />
 
       {/* Operational Reminder Popup */}

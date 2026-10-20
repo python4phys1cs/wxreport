@@ -71,42 +71,24 @@ app.get('/api/auth/session', (req, res) => {
   return res.status(200).json({ authenticated: true, identity: check.identity });
 });
 
-/**
- * GET /api/observations/archive
- * Downloads the current 15-day observation archive as a JSON file attachment.
- */
-app.get('/api/observations/archive', (req, res) => {
-  const archive = defaultObservationStore.exportArchive();
-  const latestDate =
-    archive.metadata.dates.length > 0
-      ? archive.metadata.dates[archive.metadata.dates.length - 1]
-      : 'empty';
-
-  res.setHeader('Content-Type', 'application/json; charset=utf-8');
-  res.setHeader('Content-Disposition', `attachment; filename="wxops_archive_${latestDate}.json"`);
-  res.status(200).send(JSON.stringify(archive, null, 2));
-});
+import statusHandler from './api/observations/status.ts';
+import observationsHandler from './api/observations/index.ts';
+import ingestHandler from './api/observations/ingest.ts';
+import updateHandler from './api/observations/update.ts';
+import syncHandler from './api/observations/sync.ts';
+import archiveHandler from './api/observations/archive.ts';
 
 /**
- * POST /api/observations/archive
- * Restores/imports or synchronizes the 15-day observation archive.
+ * Shared PostgreSQL & In-Memory Observation Endpoints
  */
-app.post('/api/observations/archive', (req, res) => {
-  try {
-    const result = defaultObservationStore.restoreArchive(req.body);
-    if (!result.success) {
-      return res.status(400).json({ success: false, error: result.error });
-    }
-    return res.status(200).json({
-      success: true,
-      datesRestored: result.datesRestored,
-      stationCount: result.stationCount,
-    });
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Invalid archive';
-    return res.status(400).json({ success: false, error: msg });
-  }
-});
+app.get('/api/observations/status', (req, res) => statusHandler(req, res));
+app.get('/api/observations', (req, res) => observationsHandler(req, res));
+app.delete('/api/observations', (req, res) => observationsHandler(req, res));
+app.post('/api/observations/ingest', (req, res) => ingestHandler(req, res));
+app.post('/api/observations/update', (req, res) => updateHandler(req, res));
+app.post('/api/observations/sync', (req, res) => syncHandler(req, res));
+app.get('/api/observations/archive', (req, res) => archiveHandler(req, res));
+app.post('/api/observations/archive', (req, res) => archiveHandler(req, res));
 
 async function startServer() {
   const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;

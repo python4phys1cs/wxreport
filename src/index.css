@@ -1,1 +1,10 @@
 @import "tailwindcss";
+
+@theme {
+  --color-surface-container: var(--bg-header, #f1f5f9);
+  --color-on-surface: var(--text-main, #0f172a);
+  --color-on-surface-variant: var(--text-muted, #475569);
+  --color-outline-variant: var(--border-light, #cbd5e1);
+  --color-primary: var(--accent-primary, #1e3a5f);
+  --color-primary-hover: var(--accent-hover, #152942);
+}

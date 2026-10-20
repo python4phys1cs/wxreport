@@ -33,6 +33,10 @@ export const authClient = {
     }
   },
 
+  getSessionToken(): string | null {
+    return this.getStoredToken();
+  },
+
   getStoredIdentity(): WorkstationIdentity | null {
     if (typeof window === 'undefined' || !window.sessionStorage) return null;
     try {

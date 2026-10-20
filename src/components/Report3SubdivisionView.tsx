@@ -76,8 +76,15 @@ export function formatSubdivisionSummaryLabel(
   if (!extreme || extreme.value === null || extreme.value === undefined || isNaN(extreme.value)) {
     return '---';
   }
-  const formattedVal = Number(extreme.value).toFixed(1);
+  const valNum = Number(extreme.value);
+  const formattedVal = valNum.toFixed(1);
   const unit = param === 'Rainfall' ? 'mm' : '°C';
+
+  // When every station's rainfall is 0.0 mm, show '0.0 mm' without listing station names
+  if (param === 'Rainfall' && valNum === 0) {
+    return `${formattedVal} ${unit}`;
+  }
+
   const stations = cleanExtremeStationList(extreme.stationNames);
   if (!stations || stations === '---') {
     return `${formattedVal} ${unit}`;
@@ -183,8 +190,8 @@ export const Report3SubdivisionView: React.FC<Report3SubdivisionProps> = ({
                     <th>Min</th>
                     <th>24h Chg</th>
                     <th>Dep</th>
-                    <th>0830</th>
-                    <th>1730</th>
+                    <th>at 0830 IST</th>
+                    <th>at 1730 IST</th>
                     <th className="col-rain-sub">Last 24 Hours up to 0830 hrs IST</th>
                     <th className="col-rain-sub">Last 9 Hours up to 1730 hrs IST</th>
                   </tr>

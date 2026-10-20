@@ -48,7 +48,7 @@ export function formatSubdivisionExtremeTmin(ext?: { value: number | null; stati
   return `${name} — ${ext.value.toFixed(1)}°C`;
 }
 
-export function formatSubdivisionExtremeRainfall(ext?: { value: number | null; stationNames: string }): string {
+export function formatSubdivisionExtremeRainfall(ext?: { value: number | null; stationNames: string } | null): string {
   if (!ext || ext.value === null || ext.value === undefined || isNaN(ext.value)) return '---';
   if (ext.value === 0) return '0.0 mm';
   const name = ext.stationNames && ext.stationNames !== '---' ? ext.stationNames : '---';
@@ -96,8 +96,8 @@ export const Report1StationTable: React.FC<Report1Props> = ({
               <th>Min</th>
               <th>24h Chg</th>
               <th>Dep</th>
-              <th>0830</th>
-              <th>1730</th>
+              <th>at 0830 IST</th>
+              <th>at 1730 IST</th>
             </tr>
           </thead>
           <tbody>

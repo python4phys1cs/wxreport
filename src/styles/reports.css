@@ -2619,4 +2619,136 @@ body {
   color: var(--text-muted);
 }
 
+.header-storage-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-family: var(--font-sans);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: 3px;
+  border: 1px solid var(--border-color);
+}
+
+.header-storage-pill.is-connected {
+  background-color: #ecfdf5;
+  color: #047857;
+  border-color: #a7f3d0;
+}
+
+.header-storage-pill.is-local {
+  background-color: #fffbeb;
+  color: #b45309;
+  border-color: #fde68a;
+}
+
+/* ==========================================================================
+   About Section & Workstation Credits Modal
+   ========================================================================== */
+
+.btn-header-about {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  color: var(--accent-primary);
+  border: 1px solid var(--border-light);
+  background-color: var(--bg-panel);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+}
+
+.btn-header-about:hover {
+  background-color: var(--bg-subhead);
+  border-color: var(--border-dark);
+}
+
+.about-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(2px);
+  z-index: 1050;
+  animation: fadeIn 0.15s ease-out;
+}
+
+.about-modal-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 640px;
+  max-width: 95vw;
+  max-height: 90vh;
+  background-color: var(--bg-panel);
+  border: 1.5px solid var(--border-dark);
+  border-radius: 8px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+  z-index: 1060;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: var(--text-main);
+  animation: modalSlideIn 0.18s ease-out;
+}
+
+.about-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background-color: var(--bg-header);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.about-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--accent-primary);
+  font-family: var(--font-mono);
+}
+
+.about-modal-close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease-in-out;
+}
+
+.about-modal-close:hover {
+  background-color: var(--bg-subhead);
+  color: var(--text-main);
+}
+
+.about-modal-body {
+  padding: 1rem 1.25rem 1.25rem;
+  overflow-y: auto;
+  max-height: calc(90vh - 3.5rem);
+}
+
+.about-card {
+  background-color: var(--bg-header);
+  border-color: var(--border-light);
+}
+
+[data-theme='theme-night'] .about-card,
+.theme-night .about-card {
+  background-color: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.1);
+}
 

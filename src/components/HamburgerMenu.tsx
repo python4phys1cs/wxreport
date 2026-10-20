@@ -101,6 +101,9 @@ interface HamburgerMenuProps {
   onDeleteAllData?: () => void;
   currentIdentity?: string | null;
   onLogout?: () => void;
+  dbStatus?: { configured: boolean; healthy: boolean; provider: string; error?: string; datesCount?: number } | null;
+  onMigrateToDatabase?: () => Promise<void>;
+  onOpenAbout?: () => void;
 }
 
 export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
@@ -134,6 +137,9 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
   onDeleteAllData,
   currentIdentity,
   onLogout,
+  dbStatus,
+  onMigrateToDatabase,
+  onOpenAbout,
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -258,6 +264,21 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
                   {activeReport === 'subdivision' && <span className="nav-active-badge">Active</span>}
                 </button>
               </li>
+              {onOpenAbout && (
+                <li>
+                  <button
+                    type="button"
+                    className="nav-item"
+                    onClick={() => {
+                      onClose();
+                      onOpenAbout();
+                    }}
+                  >
+                    <span className="nav-dot" />
+                    <span className="nav-text">About WXOps &amp; Credits</span>
+                  </button>
+                </li>
+              )}
             </ul>
           </div>
 
@@ -717,6 +738,33 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
                 </div>
               )}
 
+              {/* Shared Database Migration & Status */}
+              <div className="sidebar-setting-block shared-db-block" style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-color)' }}>
+                <div className="setting-subhead">Shared PostgreSQL Database</div>
+                <div className="setting-status-text">
+                  Storage: <strong>{dbStatus?.configured ? (dbStatus.healthy ? '☁️ PostgreSQL (Connected)' : '⚠️ Offline/Error') : '💾 Local Buffer'}</strong>
+                  {dbStatus?.configured && dbStatus.datesCount !== undefined && (
+                    <span> &bull; {dbStatus.datesCount} dates in cloud</span>
+                  )}
+                </div>
+
+                {onMigrateToDatabase && (
+                  <div style={{ marginTop: '0.375rem' }}>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-xs"
+                      onClick={onMigrateToDatabase}
+                      title="Safely exports a local backup and syncs local observations into shared PostgreSQL"
+                    >
+                      ☁️ Migrate Local Buffer to PostgreSQL
+                    </button>
+                    <div className="setting-help-text" style={{ marginTop: '0.25rem' }}>
+                      Exports a local safety backup before uploading to PostgreSQL.
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Destructive Data Clear Section (Kept strictly separated at bottom) */}
               <div className="sidebar-destructive-section">
                 {!isDeleting ? (
@@ -811,9 +859,21 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
           </div>
         )}
 
-        <div className="drawer-footer">
+        <div
+          className="drawer-footer"
+          style={{ cursor: onOpenAbout ? 'pointer' : 'default' }}
+          onClick={() => {
+            if (onOpenAbout) {
+              onClose();
+              onOpenAbout();
+            }
+          }}
+          title={onOpenAbout ? 'Click to view About WXOps and Workstation Credits' : undefined}
+        >
           <span>WXOps Synop Report &bull; Operational Meteorology</span>
-          <span style={{ fontSize: '0.625rem', opacity: 0.8 }}>WMO 03Z / 12Z SYNOP Reporting</span>
+          <span style={{ fontSize: '0.625rem', opacity: 0.85, textDecoration: onOpenAbout ? 'underline' : 'none' }}>
+            System Info &amp; Workstation Credits
+          </span>
         </div>
       </aside>
     </>

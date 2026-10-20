@@ -489,8 +489,8 @@ describe('Report Data Orchestrator Suite', () => {
       assert.equal(nagpur.tmin, 25.2);
       assert.equal(nagpur.tmin24hChange, 1.0); // 25.2 - 24.2
       assert.equal(nagpur.tmax, 39.5);
-      assert.equal(nagpur.tmax24hChange, 1.0); // 39.5 - 38.5
-      assert.equal(nagpur.rh1730, 45); // Populated from D - 1 evening baseline
+      // Under Rule 3.A, 1730 IST RH must be null (---) when D1's 12Z observation is unavailable (Never substitute D0's evening RH)
+      assert.equal(nagpur.rh1730, null);
     });
 
     it('correctly handles split-date baseline (Dm2 for Tmin, De2 for Tmax)', () => {

@@ -12,6 +12,7 @@ import {
   type Parsed12UtcStationObservation,
 } from '../parser/synopDecoder.ts';
 import { isAllowlistedStation, getStation } from '../constants/stationRegistry.ts';
+export { getPreviousDayDateString } from './climatology.ts';
 import { getPreviousDayDateString } from './climatology.ts';
 import type { HistoricalObservation, HistoricalObservationProvider } from './reportOrchestrator.ts';
 
@@ -1053,8 +1054,7 @@ export class InMemoryObservationStore implements ObservationStore {
 
       let current = dateMap.get(stnId);
       if (!current) {
-        const prior = this.getLatestObservationForStation(stnId, cleanDate);
-        current = createStationObservationWithPriorState(stnId, cleanDate, prior);
+        current = createEmptyStationObservation(stnId, cleanDate);
         dateMap.set(stnId, current);
       }
 
@@ -1074,10 +1074,34 @@ export class InMemoryObservationStore implements ObservationStore {
 
       // 2. Previous-day Tmax from Section 333 (if present in 03Z)
       if (obs.tmaxPreviousDay !== null && obs.tmaxPreviousDay !== undefined && !isNaN(obs.tmaxPreviousDay)) {
-        if (!current.manualEdits?.tmax) {
+        current.tmaxPreviousDay = obs.tmaxPreviousDay;
+        if (!current.manualEdits?.tmax && (current.tmaxDate !== cleanDate || current.tmaxSlot !== '12Z')) {
           current.tmax = obs.tmaxPreviousDay;
           current.tmaxDate = previousDate;
           current.tmaxSlot = '03Z';
+        }
+        // Associate with previous day (D0) in history map without adding a ghost date to archiveByDate
+        const histKey = `${stnId}_${previousDate}`;
+        const existingHist = this.history.get(histKey);
+        this.history.set(histKey, {
+          stationId: stnId,
+          date: previousDate,
+          tmin: existingHist?.tmin ?? null,
+          tmax: obs.tmaxPreviousDay,
+          rainfall: existingHist?.rainfall ?? null,
+          rh0830: existingHist?.rh0830 ?? null,
+          rh1730: existingHist?.rh1730 ?? null,
+        });
+
+        // If previousDate ALREADY exists in archiveByDate, update its tmax as well:
+        const prevMap = this.archiveByDate.get(previousDate);
+        if (prevMap) {
+          const prevRecord = prevMap.get(stnId);
+          if (prevRecord && prevRecord.tmax === null && !prevRecord.manualEdits?.tmax) {
+            prevRecord.tmax = obs.tmaxPreviousDay;
+            prevRecord.tmaxDate = previousDate;
+            prevRecord.tmaxSlot = '03Z';
+          }
         }
       }
 
@@ -1160,8 +1184,7 @@ export class InMemoryObservationStore implements ObservationStore {
 
       let current = dateMap.get(stnId);
       if (!current) {
-        const prior = this.getLatestObservationForStation(stnId, cleanDate);
-        current = createStationObservationWithPriorState(stnId, cleanDate, prior);
+        current = createEmptyStationObservation(stnId, cleanDate);
         dateMap.set(stnId, current);
       }
 
@@ -1355,8 +1378,7 @@ export class InMemoryObservationStore implements ObservationStore {
 
     let current = dateMap.get(cleanId);
     if (!current) {
-      const prior = this.getLatestObservationForStation(cleanId, cleanDate);
-      current = createStationObservationWithPriorState(cleanId, cleanDate, prior);
+      current = createEmptyStationObservation(cleanId, cleanDate);
       dateMap.set(cleanId, current);
     }
 
@@ -1374,10 +1396,34 @@ export class InMemoryObservationStore implements ObservationStore {
         }
       }
       if (obs.tmaxPreviousDay !== null && obs.tmaxPreviousDay !== undefined && !isNaN(obs.tmaxPreviousDay)) {
-        if (!current.manualEdits?.tmax) {
+        current.tmaxPreviousDay = obs.tmaxPreviousDay;
+        if (!current.manualEdits?.tmax && (current.tmaxDate !== cleanDate || current.tmaxSlot !== '12Z')) {
           current.tmax = obs.tmaxPreviousDay;
           current.tmaxDate = previousDate;
           current.tmaxSlot = '03Z';
+        }
+        // Associate with previous day (D0) in history map without adding a ghost date to archiveByDate
+        const histKey = `${cleanId}_${previousDate}`;
+        const existingHist = this.history.get(histKey);
+        this.history.set(histKey, {
+          stationId: cleanId,
+          date: previousDate,
+          tmin: existingHist?.tmin ?? null,
+          tmax: obs.tmaxPreviousDay,
+          rainfall: existingHist?.rainfall ?? null,
+          rh0830: existingHist?.rh0830 ?? null,
+          rh1730: existingHist?.rh1730 ?? null,
+        });
+
+        // If previousDate ALREADY exists in archiveByDate, update its tmax as well:
+        const prevMap = this.archiveByDate.get(previousDate);
+        if (prevMap) {
+          const prevRecord = prevMap.get(cleanId);
+          if (prevRecord && prevRecord.tmax === null && !prevRecord.manualEdits?.tmax) {
+            prevRecord.tmax = obs.tmaxPreviousDay;
+            prevRecord.tmaxDate = previousDate;
+            prevRecord.tmaxSlot = '03Z';
+          }
         }
       }
       if (obs.relativeHumidity !== null && obs.relativeHumidity !== undefined && !isNaN(obs.relativeHumidity)) {
@@ -1551,10 +1597,7 @@ export class InMemoryObservationStore implements ObservationStore {
     if (!targetDate) return null;
     const dateMap = this.archiveByDate.get(targetDate);
     const stn = dateMap?.get(stationId.trim());
-    if (stn) return { ...stn };
-
-    const prior = this.getLatestObservationForStation(stationId.trim(), targetDate);
-    return prior ? { ...prior } : null;
+    return stn ? { ...stn } : null;
   }
 
   /**
@@ -1564,16 +1607,6 @@ export class InMemoryObservationStore implements ObservationStore {
     const copy = new Map<string, PersistedStationObservation>();
     const targetDate = this.resolveTargetDate(date);
     if (!targetDate) return copy;
-
-    const candidateDates = this.getArchivedDates().filter((d) => d < targetDate);
-    for (const d of candidateDates) {
-      const priorMap = this.archiveByDate.get(d);
-      if (priorMap) {
-        for (const [id, obs] of priorMap.entries()) {
-          copy.set(id, { ...obs });
-        }
-      }
-    }
 
     const dateMap = this.archiveByDate.get(targetDate);
     if (dateMap) {

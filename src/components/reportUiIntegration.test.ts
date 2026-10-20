@@ -1134,8 +1134,15 @@ describe('UI Report Pipeline Integration Suite', () => {
 42672 32996 00000 10250 20200 40140 333 10360 20210 58010 555 10000=`;
 
       store.ingestBulletin('03Z', bulletin, date);
+      const bulletin12z = `AAXX 09124
+42933 11996 02502 10350 20210 40120 333 10350 58005 555 10000=
+42943 32995 40902 10340 20213 40060 333 10340 58007 555 10000=
+42947 32595 21402 10380 20213 40140 82100 333 10380 58010 555 10000=
+42672 32996 00000 10360 20200 40140 333 10360 58010 555 10000=`;
+      store.ingestBulletin('12Z', bulletin12z, date);
 
       const report = generateDailyReports('', date, defaultPentadNormalProvider, undefined, {
+        utcSlot: '12Z',
         observationStore: store,
       });
 
@@ -1175,6 +1182,7 @@ describe('UI Report Pipeline Integration Suite', () => {
         getNormal: () => null,
       };
       const reportNoNormals = generateDailyReports('', date, emptyNormalProvider, undefined, {
+        utcSlot: '12Z',
         observationStore: store,
       });
       const vidNoNormals = reportNoNormals.subdivisions.find((s) => String(s.subdivision.id) === '26')!;

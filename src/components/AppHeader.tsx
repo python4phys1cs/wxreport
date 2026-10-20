@@ -10,6 +10,8 @@ interface AppHeaderProps {
   clockString: string;
   currentIdentity?: string | null;
   onLogout?: () => void;
+  onOpenAbout?: () => void;
+  dbStatus?: { configured: boolean; healthy: boolean; provider: string; error?: string } | null;
 }
 
 export const AppHeader: React.FC<AppHeaderProps> = ({
@@ -17,6 +19,8 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   clockString,
   currentIdentity,
   onLogout,
+  onOpenAbout,
+  dbStatus,
 }) => {
   return (
     <header className="app-header no-print" aria-label="Workstation Header">
@@ -55,11 +59,40 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           )}
         </div>
 
+        {dbStatus && (
+          <div
+            className={`header-storage-pill ${dbStatus.configured && dbStatus.healthy ? 'is-connected' : 'is-local'}`}
+            title={
+              dbStatus.configured
+                ? dbStatus.healthy
+                  ? 'Authoritative PostgreSQL Database (Connected & Synced across devices)'
+                  : `PostgreSQL connection error: ${dbStatus.error}`
+                : 'Local Buffer Mode (Supabase PostgreSQL not configured)'
+            }
+          >
+            <span aria-hidden="true">{dbStatus.configured && dbStatus.healthy ? '☁️' : '💾'}</span>
+            <span>{dbStatus.configured && dbStatus.healthy ? 'PostgreSQL' : 'Local'}</span>
+          </div>
+        )}
+
         {currentIdentity && (
           <div className="header-identity-pill" title="Active Meteorological Workstation Identity">
             <span aria-hidden="true">👤</span>
             <span>{currentIdentity}</span>
           </div>
+        )}
+
+        {onOpenAbout && (
+          <button
+            type="button"
+            className="btn-header-about"
+            onClick={onOpenAbout}
+            title="About WXOps & System Credits"
+            aria-label="About WXOps"
+          >
+            <span aria-hidden="true" style={{ marginRight: '0.25rem', fontSize: '0.8125rem' }}>ℹ️</span>
+            <span>About</span>
+          </button>
         )}
 
         {onLogout && (
