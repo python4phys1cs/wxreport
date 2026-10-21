@@ -10,6 +10,60 @@ import {
   extractSessionToken,
 } from './src/server/authService.ts';
 
+import statusHandler from './api/observations/status.ts';
+import ingestHandler from './api/observations/ingest.ts';
+import syncHandler from './api/observations/sync.ts';
+import updateHandler from './api/observations/update.ts';
+import archiveHandler from './api/observations/archive.ts';
+import indexHandler from './api/observations/index.ts';
+
+function adaptHandler(handler: (req: any, res: any) => Promise<any> | any) {
+  return (req: any, res: any) => {
+    let body = '';
+    req.on('data', (chunk: any) => {
+      body += chunk;
+    });
+    req.on('end', () => {
+      if (body) {
+        try {
+          req.body = JSON.parse(body);
+        } catch {
+          req.body = body;
+        }
+      } else {
+        req.body = {};
+      }
+
+      res.status = (code: number) => {
+        res.statusCode = code;
+        return res;
+      };
+      res.json = (data: any) => {
+        if (!res.headersSent) {
+          res.setHeader('Content-Type', 'application/json; charset=utf-8');
+          res.end(JSON.stringify(data));
+        }
+        return res;
+      };
+      res.send = (data: any) => {
+        if (!res.headersSent) {
+          res.end(data);
+        }
+        return res;
+      };
+
+      Promise.resolve(handler(req, res)).catch((err: unknown) => {
+        if (!res.headersSent) {
+          const msg = err instanceof Error ? err.message : String(err);
+          res.statusCode = 500;
+          res.setHeader('Content-Type', 'application/json; charset=utf-8');
+          res.end(JSON.stringify({ error: msg }));
+        }
+      });
+    });
+  };
+}
+
 function wxopsApiPlugin(): Plugin {
   return {
     name: 'wxops-api-plugin',
@@ -110,58 +164,18 @@ function wxopsApiPlugin(): Plugin {
         res.end(JSON.stringify({ authenticated: true, identity: check.identity }));
       });
 
-      // /api/observations/archive
-      server.middlewares.use('/api/observations/archive', (req, res) => {
-        if (req.method === 'GET') {
-          const archive = defaultObservationStore.exportArchive();
-          const latestDate =
-            archive.metadata.dates.length > 0
-              ? archive.metadata.dates[archive.metadata.dates.length - 1]
-              : 'empty';
-
-          res.setHeader('Content-Type', 'application/json; charset=utf-8');
-          res.setHeader('Content-Disposition', `attachment; filename="wxops_archive_${latestDate}.json"`);
-          res.statusCode = 200;
-          res.end(JSON.stringify(archive, null, 2));
-          return;
+      // Specific /api/observations routes
+      server.middlewares.use('/api/observations/status', adaptHandler(statusHandler));
+      server.middlewares.use('/api/observations/ingest', adaptHandler(ingestHandler));
+      server.middlewares.use('/api/observations/update', adaptHandler(updateHandler));
+      server.middlewares.use('/api/observations/sync', adaptHandler(syncHandler));
+      server.middlewares.use('/api/observations/archive', adaptHandler(archiveHandler));
+      server.middlewares.use('/api/observations', (req, res, next) => {
+        const pathPart = req.url?.split('?')[0];
+        if (pathPart === '/' || pathPart === '') {
+          return adaptHandler(indexHandler)(req, res);
         }
-
-        if (req.method === 'POST') {
-          let body = '';
-          req.on('data', (chunk) => {
-            body += chunk;
-          });
-          req.on('end', () => {
-            try {
-              const parsed = JSON.parse(body);
-              const result = defaultObservationStore.restoreArchive(parsed);
-              res.setHeader('Content-Type', 'application/json; charset=utf-8');
-              if (!result.success) {
-                res.statusCode = 400;
-                res.end(JSON.stringify({ success: false, error: result.error }));
-                return;
-              }
-              res.statusCode = 200;
-              res.end(
-                JSON.stringify({
-                  success: true,
-                  datesRestored: result.datesRestored,
-                  stationCount: result.stationCount,
-                })
-              );
-            } catch (err: unknown) {
-              const msg = err instanceof Error ? err.message : 'Invalid JSON';
-              res.statusCode = 400;
-              res.setHeader('Content-Type', 'application/json; charset=utf-8');
-              res.end(JSON.stringify({ success: false, error: msg }));
-            }
-          });
-          return;
-        }
-
-        res.statusCode = 405;
-        res.setHeader('Allow', 'GET, POST');
-        res.end(JSON.stringify({ error: `Method ${req.method} Not Allowed` }));
+        next();
       });
     },
   };

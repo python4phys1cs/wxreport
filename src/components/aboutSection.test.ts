@@ -113,30 +113,25 @@ describe('AboutSection & System Credits Suite', () => {
       assert.ok(html.includes('about-modal-dialog'));
       assert.ok(html.includes('role="dialog"'));
       assert.ok(html.includes('aria-modal="true"'));
-      assert.ok(html.includes('About WXOps'));
+      assert.ok(html.includes('System Info &amp; Workstation Credits'));
       assert.ok(html.includes('Dr. Praveen Kumar, Scientist-D'));
     });
   });
 
-  describe('4. Navigation & AppHeader Integration', () => {
-    it('renders About button in AppHeader when onOpenAbout is provided', () => {
-      let opened = false;
+  describe('4. Navigation & Menu Integration', () => {
+    it('does not render About button in AppHeader keeping header minimal', () => {
       const html = renderToStaticMarkup(
         React.createElement(AppHeader, {
           onToggleMenu: () => {},
           clockString: '20/10/2026 14:30 IST | 09:00 UTC',
-          onOpenAbout: () => {
-            opened = true;
-          },
         })
       );
 
-      assert.ok(html.includes('btn-header-about'));
-      assert.ok(html.includes('About'));
-      assert.ok(html.includes('About WXOps &amp; System Credits'));
+      assert.equal(html.includes('btn-header-about'), false);
+      assert.equal(html.includes('About WXOps &amp; System Credits'), false);
     });
 
-    it('renders About WXOps navigation item in HamburgerMenu', () => {
+    it('renders only meteorological reports in report list and retains only System Info & Workstation Credits in drawer footer', () => {
       const html = renderToStaticMarkup(
         React.createElement(HamburgerMenu, {
           isOpen: true,
@@ -155,7 +150,14 @@ describe('AboutSection & System Credits Suite', () => {
         })
       );
 
-      assert.ok(html.includes('About WXOps &amp; Credits'));
+      // Verify 'About WXOps & Credits' is removed from menu
+      assert.equal(html.includes('About WXOps &amp; Credits'), false);
+      assert.equal(html.includes('About WxOps &amp; Credits'), false);
+
+      // Verify 'WXOps Synop Report • Operational Meteorology' is removed from footer
+      assert.equal(html.includes('Operational Meteorology'), false);
+
+      // Verify only System Info & Workstation Credits is kept in footer
       assert.ok(html.includes('System Info &amp; Workstation Credits'));
     });
   });

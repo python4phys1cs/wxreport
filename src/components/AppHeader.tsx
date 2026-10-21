@@ -10,7 +10,6 @@ interface AppHeaderProps {
   clockString: string;
   currentIdentity?: string | null;
   onLogout?: () => void;
-  onOpenAbout?: () => void;
   dbStatus?: { configured: boolean; healthy: boolean; provider: string; error?: string } | null;
 }
 
@@ -19,7 +18,6 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   clockString,
   currentIdentity,
   onLogout,
-  onOpenAbout,
   dbStatus,
 }) => {
   return (
@@ -80,19 +78,6 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             <span aria-hidden="true">👤</span>
             <span>{currentIdentity}</span>
           </div>
-        )}
-
-        {onOpenAbout && (
-          <button
-            type="button"
-            className="btn-header-about"
-            onClick={onOpenAbout}
-            title="About WXOps & System Credits"
-            aria-label="About WXOps"
-          >
-            <span aria-hidden="true" style={{ marginRight: '0.25rem', fontSize: '0.8125rem' }}>ℹ️</span>
-            <span>About</span>
-          </button>
         )}
 
         {onLogout && (

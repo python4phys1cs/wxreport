@@ -212,7 +212,7 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
         <div className="about-modal-header">
           <div id="about-dialog-title" className="about-modal-title">
             <Info className="w-4 h-4 text-primary" />
-            <span>About WXOps</span>
+            <span>System Info &amp; Workstation Credits</span>
           </div>
           <button
             type="button"

@@ -264,21 +264,6 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
                   {activeReport === 'subdivision' && <span className="nav-active-badge">Active</span>}
                 </button>
               </li>
-              {onOpenAbout && (
-                <li>
-                  <button
-                    type="button"
-                    className="nav-item"
-                    onClick={() => {
-                      onClose();
-                      onOpenAbout();
-                    }}
-                  >
-                    <span className="nav-dot" />
-                    <span className="nav-text">About WXOps &amp; Credits</span>
-                  </button>
-                </li>
-              )}
             </ul>
           </div>
 
@@ -861,17 +846,25 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
 
         <div
           className="drawer-footer"
-          style={{ cursor: onOpenAbout ? 'pointer' : 'default' }}
+          style={{ cursor: onOpenAbout ? 'pointer' : 'default', padding: '0.625rem 0.875rem', textAlign: 'center' }}
           onClick={() => {
             if (onOpenAbout) {
               onClose();
               onOpenAbout();
             }
           }}
-          title={onOpenAbout ? 'Click to view About WXOps and Workstation Credits' : undefined}
+          title={onOpenAbout ? 'Click to view System Info & Workstation Credits' : undefined}
+          role={onOpenAbout ? 'button' : undefined}
+          tabIndex={onOpenAbout ? 0 : undefined}
+          onKeyDown={(e) => {
+            if (onOpenAbout && (e.key === 'Enter' || e.key === ' ')) {
+              e.preventDefault();
+              onClose();
+              onOpenAbout();
+            }
+          }}
         >
-          <span>WXOps Synop Report &bull; Operational Meteorology</span>
-          <span style={{ fontSize: '0.625rem', opacity: 0.85, textDecoration: onOpenAbout ? 'underline' : 'none' }}>
+          <span style={{ fontSize: '0.6875rem', fontWeight: 600, letterSpacing: '0.02em', textDecoration: onOpenAbout ? 'underline' : 'none' }}>
             System Info &amp; Workstation Credits
           </span>
         </div>

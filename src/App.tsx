@@ -745,7 +745,6 @@ export default function App() {
         clockString={clockString}
         currentIdentity={currentIdentity}
         onLogout={handleLogout}
-        onOpenAbout={() => setIsAboutOpen(true)}
       />
 
       {/* Hamburger Sidebar (Reports & Integrated Settings) */}
