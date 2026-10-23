@@ -2331,15 +2331,6 @@ body {
   position: relative;
 }
 
-.manual-edit-indicator {
-  font-size: 0.625rem;
-  color: var(--accent-primary);
-  font-weight: 800;
-  cursor: help;
-  user-select: none;
-  opacity: 0.85;
-}
-
 .edit-cell-input.is-manually-edited {
   border-color: var(--accent-primary);
   background-color: rgba(37, 99, 235, 0.04);

@@ -128,8 +128,9 @@ describe('Table Edits Consistency, Persistence, and Traceability', () => {
     const vidarbhaSub = initialResult.subdivisions.find((s) => s.subdivision.id === '26');
     assert.ok(vidarbhaSub);
     const nagpurRow = vidarbhaSub.report1Rows.find((r) => r.stationId === '42867');
-    // In 03Z report for D1, Tmax is null (---) until D1 12Z observation arrives or manual edit is applied (Rule 3.A)
-    assert.equal(nagpurRow?.tmax, null);
+    // At 03Z on D1, Tmax IS available from Section 333 (previous day's evening max = 42.0)
+    // Legacy PHP shows $r4['tmax'] from ob_dt_e=$De1 regardless of time
+    assert.equal(nagpurRow?.tmax, 42.0);
 
     // Edit Nagpur Tmax to 46.5°C and rainfall to 55.0 mm
     const recalculated = recalculateReportsResult(

@@ -163,9 +163,6 @@ export const Report1StationTable: React.FC<Report1Props> = ({
                           ) : (
                             <span className="value-with-edit-tag">
                               {formatValue(row.tmax)}
-                              {row.manualEdits?.tmax && (
-                                <span className="manual-edit-indicator" title="Manually edited value (original SYNOP telegram preserved)">✎</span>
-                              )}
                             </span>
                           )}
                         </td>
@@ -197,9 +194,6 @@ export const Report1StationTable: React.FC<Report1Props> = ({
                           ) : (
                             <span className="value-with-edit-tag">
                               {formatValue(row.tmin)}
-                              {row.manualEdits?.tmin && (
-                                <span className="manual-edit-indicator" title="Manually edited value (original SYNOP telegram preserved)">✎</span>
-                              )}
                             </span>
                           )}
                         </td>
@@ -222,12 +216,9 @@ export const Report1StationTable: React.FC<Report1Props> = ({
                               }}
                               aria-label={`0830 RH for ${row.stationName}`}
                             />
-                          ) : row.rh0830 !== null ? (
+) : row.rh0830 !== null ? (
                             <span className="value-with-edit-tag">
                               {`${row.rh0830}%`}
-                              {row.manualEdits?.rh0830 && (
-                                <span className="manual-edit-indicator" title="Manually edited value (original SYNOP telegram preserved)">✎</span>
-                              )}
                             </span>
                           ) : (
                             '---'
@@ -251,9 +242,6 @@ export const Report1StationTable: React.FC<Report1Props> = ({
                           ) : row.rh1730 !== null ? (
                             <span className="value-with-edit-tag">
                               {`${row.rh1730}%`}
-                              {row.manualEdits?.rh1730 && (
-                                <span className="manual-edit-indicator" title="Manually edited value (original SYNOP telegram preserved)">✎</span>
-                              )}
                             </span>
                           ) : (
                             '---'
@@ -284,12 +272,9 @@ export const Report1StationTable: React.FC<Report1Props> = ({
                               }}
                               aria-label={`Rainfall for ${row.stationName}`}
                             />
-                          ) : (
+) : (
                             <span className="value-with-edit-tag">
                               {formatValue(row.rainfall)}
-                              {(row.manualEdits?.rainfall || row.manualEdits?.rainfall0830) && (
-                                <span className="manual-edit-indicator" title="Manually edited value (original SYNOP telegram preserved)">✎</span>
-                              )}
                             </span>
                           )}
                         </td>

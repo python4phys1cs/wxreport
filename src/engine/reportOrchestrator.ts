@@ -30,7 +30,100 @@ import {
   type SubdivisionMetadata,
 } from '../constants/stationRegistry.ts';
 import { DEFAULT_DISABLED_STATION_IDS } from '../utils/stationInclusion.ts';
-import type { ObservationStore, UtcSlot } from './observationStore.ts';
+import type { ObservationStore, UtcSlot, PersistedStationObservation } from './observationStore.ts';
+
+/**
+ * Resolves the pentad for Tmax departure calculations.
+ *
+ * Legacy PHP logic (from observations_include_fast.php):
+ * - Tmax shown in the report comes from the *previous* evening date (De1).
+ * - At 03Z: Tmax is D0's evening max, so pentad should be resolved from D0.
+ * - At 12Z: Tmax is D1's evening max, so pentad should be resolved from D1 (reportingDateStr).
+ *
+ * The pentad for Tmin always uses reportingDateStr (D1's morning observation).
+ */
+function resolveTmaxPentad(reportingDateStr: string, eveningDateStr: string, utcSlot: UtcSlot): string {
+  // At 03Z, Tmax comes from previous day (eveningDateStr = D0)
+  // At 12Z, Tmax comes from current day (reportingDateStr = D1)
+  const tmaxBaseDate = utcSlot === '03Z' ? eveningDateStr : reportingDateStr;
+  return resolvePentad(tmaxBaseDate, 'tmax');
+}
+
+/**
+ * Determines whether Tmax should be available for display in the report.
+ *
+ * At 03Z: Tmax is available from the previous-day evening observation (Section 333),
+ * which is persisted in `persisted.tmax` with `tmaxSlot='03Z'`. This should be shown
+ * (matching legacy PHP $r4 query against ob_dt_e=$De1).
+ *
+ * At 12Z: Tmax becomes available from the current-day 12Z bulletin (Section 333).
+ */
+function isTmaxDisplayable(utcSlot: UtcSlot, persisted: PersistedStationObservation | null | undefined): boolean {
+  if (!persisted) {
+    // Stateless path: at 03Z, Tmax comes from Section 333 in the 03Z bulletin
+    // (tmaxPreviousDay), which is parsed by enrichObservation and available immediately
+    // At 12Z, Tmax comes from the 12Z Section 333
+    return true;
+  }
+  // At 03Z, Tmax is available if it was set from previous day's evening observation
+  // (tmaxSlot = '03Z' means it came from Section 333 of 03Z bulletin)
+  // or if it has been manually edited
+  const has12ZData = Boolean(
+    persisted.has12Z ||
+    persisted.tmaxSlot === '12Z' ||
+    persisted.manualEdits?.tmax
+  );
+  if (utcSlot === '12Z') return true;
+  // At 03Z: show Tmax if it came from Section 333 (tmaxSlot='03Z') or was carried over,
+  // or if 12Z data already exists for this reporting date
+  return has12ZData || (persisted.tmax !== null && persisted.tmax !== undefined) || Boolean(persisted.manualEdits?.tmax);
+}
+
+/**
+ * Resolves the prior-day Tmax value for 24-hour change calculations.
+ *
+ * Legacy PHP logic (observations_include_fast.php):
+ *   $tmax_ch = round($r4['tmax'] - $r6['tmax'], 1)
+ * where $r4 = evening obs (De1), $r6 = evening obs two days prior (De2).
+ *
+ * At 03Z on D1: Tmax from D0 evening (De1=D0), prior = D-1 evening (De2=D-1)
+ * At 12Z on D1: Tmax from D1 evening (De1=D1), prior = D0 evening (De2=D0)
+ *
+ * In the React store:
+ *   - eveningDateStr = D0 (one day before D1)
+ *   - dateEveningPriorStr = D-1 (two days before D1)
+ *
+ * So:
+ *   - At 03Z: prior Tmax is in histDe2 (D-1 evening) — correct per legacy De2
+ *   - At 12Z: prior Tmax is in histDm2 (D0 morning, which also has D0's Tmax) — correct per legacy De1
+ */
+function resolveTmax24hPrior(
+  utcSlot: UtcSlot,
+  currentTmax: number | null,
+  histDm2: HistoricalObservation | null | undefined,
+  histDe2: HistoricalObservation | null | undefined
+): number | null {
+  if (currentTmax === null) return null;
+  // Legacy PHP: $tmax_ch = round($r4['tmax'] - $r6['tmax'], 1)
+  // where $r4 = evening obs from $De1, $r6 = evening obs from $De2 ($De1 - 1 day)
+  //
+  // At 03Z on D1:
+  //   $De1 = D0, $De2 = D-1
+  //   Current Tmax (from Section 333) = D0's evening max
+  //   Prior Tmax = D-1's evening max → histDe2 (dateEveningPriorStr)
+  //   Fallback: histDm2 (eveningDateStr/D0) if De2 data missing
+  //
+  // At 12Z on D1:
+  //   $De1 = D1, $De2 = D0
+  //   Current Tmax (from 12Z Section 333) = D1's evening max
+  //   Prior Tmax = D0's evening max → histDm2 (eveningDateStr)
+  //   Fallback: histDe2 (dateEveningPriorStr/D-1) if D0 data missing
+  if (utcSlot === '03Z') {
+    return histDe2?.tmax ?? histDm2?.tmax ?? null;
+  } else {
+    return histDm2?.tmax ?? histDe2?.tmax ?? null;
+  }
+}
 
 /**
  * Historical baseline observation contract for 24-hour comparisons.
@@ -175,7 +268,7 @@ export function generateDailyReports(
     const allPersisted = options.observationStore.getAllObservations(reportingDateStr);
     for (const [stnId, persisted] of allPersisted.entries()) {
       const normalTmin = normalProvider?.getNormal(stnId, pentadTmin);
-      const normalTmax = normalProvider?.getNormal(stnId, pentadTmax);
+      const normalTmax = normalProvider?.getNormal(stnId, resolveTmaxPentad(reportingDateStr, eveningDateStr, utcSlot));
 
       let tminDep: string | null = null;
       if (persisted.tmin !== null && persisted.tmin !== undefined && !isNaN(persisted.tmin)) {
@@ -190,14 +283,15 @@ export function generateDailyReports(
         persisted.tmaxSlot === '12Z' ||
         persisted.manualEdits?.tmax
       );
-      const isTmaxAvailable = utcSlot === '12Z' || has12ZAvailable;
+      const isTmaxAvailable = isTmaxDisplayable(utcSlot, persisted);
       const effectiveTmax = isTmaxAvailable ? persisted.tmax : null;
 
       let tmaxDep: string | null = null;
       if (effectiveTmax !== null && effectiveTmax !== undefined && !isNaN(effectiveTmax)) {
+        const normalTmaxForDep = normalProvider?.getNormal(stnId, resolveTmaxPentad(reportingDateStr, eveningDateStr, utcSlot));
         tmaxDep =
-          normalTmax?.tmax !== null && normalTmax?.tmax !== undefined
-            ? formatDeparture(calculateDeparture(effectiveTmax, normalTmax.tmax))
+          normalTmaxForDep?.tmax !== null && normalTmaxForDep?.tmax !== undefined
+            ? formatDeparture(calculateDeparture(effectiveTmax, normalTmaxForDep.tmax))
             : '---';
       }
 
@@ -311,16 +405,20 @@ export function generateDailyReports(
         options.observationStore?.getHistoricalObservation(stnMeta.id, dateEveningPriorStr) ??
         historicalProvider?.getObservation(stnMeta.id, dateEveningPriorStr);
 
+      const isTmaxAvailable = isTmaxDisplayable(utcSlot, persisted);
+      const currentTmax = isTmaxAvailable ? (persisted ? persisted.tmax : (enriched?.tmax ?? null)) : null;
+
       const has12ZAvailable = Boolean(
         persisted?.has12Z ||
         persisted?.tmaxSlot === '12Z' ||
         persisted?.manualEdits?.tmax
       );
-      const isTmaxAvailable = utcSlot === '12Z' || (persisted ? has12ZAvailable : Boolean(enriched?.tmax !== null && enriched?.tmax !== undefined));
-      const currentTmax = isTmaxAvailable ? (persisted ? persisted.tmax : (enriched?.tmax ?? null)) : null;
 
-      // 24-hour Tmax change: compares current maximum with D0's 12Z maximum. If either is unavailable, null.
-      const tmax24hPrior = currentTmax !== null ? (histDm2?.tmax ?? histDe2?.tmax ?? null) : null;
+      // 24-hour Tmax change: compares current Tmax with the prior evening's Tmax.
+      // Legacy PHP: $tmax_ch = round($r4['tmax'] - $r6['tmax'], 1)
+      // At 03Z: current Tmax is D0 (eveningDateStr), prior is D-1 (dateEveningPriorStr) → histDe2
+      // At 12Z: current Tmax is D1 (reportingDateStr), prior is D0 (eveningDateStr) → histDm2
+      const tmax24hPrior = resolveTmax24hPrior(utcSlot, currentTmax, histDm2, histDe2);
       const tmaxDepartureStr = currentTmax !== null ? (enriched?.tmaxDeparture ?? null) : null;
 
       // Minimum Temperature: D1's 03Z observation

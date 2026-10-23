@@ -81,9 +81,14 @@ describe('Operational Reporting Cycle & Persistence Semantics Regression Suite',
       // 24h Tmin change compares D1 03Z (24.0) with D0 03Z (23.0) = +1.0
       assert.equal(nagpur.tmin24hChange, 1.0);
 
+      // Tmax IS available at 03Z from Section 333 (previous day's evening max)
+      // 333 10420 -> Tmax = 42.0 (D0's evening max, reported in D1's 03Z bulletin)
+      assert.equal(nagpur.tmax, 42.0);
+      // 24h Tmax change compares current Tmax (42.0) with prior evening Tmax (40.5)
+      // Prior Tmax = 40.5 from D-1 (2026-05-13), which was stored via D0's 03Z Section 333
+      assert.equal(nagpur.tmax24hChange, 1.5);
+
       // 12Z Evening fields MUST be null / blank (---) because 12Z has not occurred yet
-      assert.equal(nagpur.tmax, null);
-      assert.equal(nagpur.tmax24hChange, null);
       assert.equal(nagpur.rh1730, null);
       assert.equal(nagpur.rainfall1730, null);
     });

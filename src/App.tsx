@@ -53,6 +53,7 @@ import {
 import { LoginScreen } from './components/LoginScreen.tsx';
 import { authClient } from './auth/authClient.ts';
 import type { WorkstationIdentity } from './server/authService.ts';
+import { sharedObservationClient, type StorageStatus } from './engine/sharedObservationClient.ts';
 import './styles/reports.css';
 
 type GenerationState = 'idle' | 'generating' | 'success' | 'error';
@@ -89,8 +90,28 @@ export default function App() {
     await authClient.logout();
     setCurrentIdentity(null);
     setAuthState('unauthenticated');
+    setDbStatus(null);
     setIsMenuOpen(false);
   }, []);
+
+  // Shared Database & Cloud Storage Status
+  const [dbStatus, setDbStatus] = useState<StorageStatus | null>(null);
+
+  const refreshDbStatus = useCallback(async () => {
+    try {
+      const status = await sharedObservationClient.getStatus();
+      setDbStatus(status);
+      return status;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (authState === 'authenticated') {
+      refreshDbStatus();
+    }
+  }, [authState, refreshDbStatus]);
 
   // 1. Single Reporting Date (strictly defaults to current Asia/Kolkata date)
   const [reportingDate, setReportingDate] = useState<string>(() => getTodayKolkata());
@@ -329,6 +350,15 @@ export default function App() {
   // Settings State inside sidebar
   const [retentionLimit, setRetentionLimit] = useState<number>(() => observationStore.getRetentionLimit());
   const [archiveDateCount, setArchiveDateCount] = useState<number>(() => observationStore.getArchiveSize());
+
+  // Automatically fetch remote observations from PostgreSQL when reportingDate changes
+  useEffect(() => {
+    if (authState === 'authenticated' && dbStatus?.configured && dbStatus.healthy) {
+      sharedObservationClient.loadDateObservations(reportingDate).then(() => {
+        setArchiveDateCount(observationStore.getArchiveSize());
+      }).catch(() => {});
+    }
+  }, [authState, reportingDate, dbStatus?.configured, dbStatus?.healthy, observationStore]);
   const [backupFormat, setBackupFormat] = useState<BackupFormat>(() => {
     if (typeof window !== 'undefined' && window.localStorage) {
       const saved = window.localStorage.getItem('wxops_backup_format') as BackupFormat | null;
@@ -424,6 +454,13 @@ export default function App() {
       }
       observationStore.updateStationObservation(reportingDate, stationId, updates);
 
+      // Async persist to PostgreSQL if configured
+      if (dbStatus?.configured && dbStatus.healthy) {
+        sharedObservationClient.updateStationObservation(reportingDate, stationId, updates).catch((err) => {
+          console.error('Failed to persist manual edit to PostgreSQL:', err);
+        });
+      }
+
       // 2. Recalculate operational report data and summaries in real-time
       setReportsResult((prev) => {
         if (!prev) return prev;
@@ -466,7 +503,7 @@ export default function App() {
     }
   };
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (!reportingDate.trim()) {
       setErrorMessage('Please select a reporting date.');
       return;
@@ -482,6 +519,11 @@ export default function App() {
     setArchiveNotification(null);
 
     try {
+      if (dbStatus?.configured && dbStatus.healthy) {
+        await sharedObservationClient.ingestBulletin(utcSlot, synopText, reportingDate);
+        await refreshDbStatus();
+      }
+
       const result = generateDailyReports(
         synopText,
         reportingDate,
@@ -645,7 +687,7 @@ export default function App() {
     [observationStore]
   );
 
-  const handleRevisedStationCode = () => {
+  const handleRevisedStationCode = async () => {
     if (!reportingDate.trim()) {
       setErrorMessage('Please select a reporting date.');
       return;
@@ -661,6 +703,11 @@ export default function App() {
     setArchiveNotification(null);
 
     try {
+      if (dbStatus?.configured && dbStatus.healthy) {
+        await sharedObservationClient.ingestBulletin(utcSlot, synopText, reportingDate);
+        await refreshDbStatus();
+      }
+
       const result = generateDailyReports(
         synopText,
         reportingDate,
@@ -685,7 +732,60 @@ export default function App() {
     }
   };
 
-  const handleDeleteAllData = () => {
+  const handleMigrateToDatabase = useCallback(async () => {
+    try {
+      const archive = observationStore.exportArchive();
+      if (archive.metadata.dateCount === 0) {
+        setArchiveNotification({
+          type: 'error',
+          message: 'No local observations available to migrate.',
+        });
+        return;
+      }
+
+      // 1. Export safety backup locally before upload
+      handleDownloadBackup();
+
+      setArchiveNotification({
+        type: 'success',
+        message: 'Uploading local observations to shared PostgreSQL database...',
+      });
+
+      const res = await sharedObservationClient.syncToDatabase({
+        archive,
+        duplicatePolicy: 'merge_fields',
+      });
+
+      if (res.success) {
+        await refreshDbStatus();
+        setArchiveNotification({
+          type: 'success',
+          message: `Migration complete: ${res.datesRestored} dates (${res.stationCount} stations) synced to PostgreSQL.`,
+        });
+      } else {
+        setArchiveNotification({
+          type: 'error',
+          message: 'Database migration failed. Local buffer remains intact.',
+        });
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setArchiveNotification({
+        type: 'error',
+        message: `Migration error: ${msg}`,
+      });
+    }
+  }, [observationStore, handleDownloadBackup, refreshDbStatus]);
+
+  const handleDeleteAllData = async () => {
+    try {
+      if (dbStatus?.configured && dbStatus.healthy) {
+        await sharedObservationClient.clearAll('CONFIRM_DELETE_ALL');
+        await refreshDbStatus();
+      }
+    } catch (err) {
+      console.error('Failed to purge PostgreSQL observations:', err);
+    }
     observationStore.clear();
     setArchiveDateCount(0);
     setReportsResult(null);
@@ -779,6 +879,8 @@ export default function App() {
         onDeleteAllData={handleDeleteAllData}
         currentIdentity={currentIdentity}
         onLogout={handleLogout}
+        dbStatus={dbStatus}
+        onMigrateToDatabase={handleMigrateToDatabase}
         onOpenAbout={() => setIsAboutOpen(true)}
       />
 
@@ -818,6 +920,7 @@ export default function App() {
         synopText={synopText}
         onSynopTextChange={setSynopText}
         onGenerate={handleGenerate}
+        onRevisedStationCode={handleRevisedStationCode}
         onClear={handleClear}
         isGenerating={generationState === 'generating'}
         errorMessage={errorMessage}
