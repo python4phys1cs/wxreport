@@ -14,6 +14,7 @@ import type {
 
 export type ReportViewType = 'consolidated' | 'summary' | 'subdivision';
 export type BackupFormat = 'JSON' | 'CSV';
+export type OperationalViewMode = 'standard' | 'minimal';
 
 export type WorkstationTheme =
   | 'theme-green'
@@ -98,12 +99,18 @@ interface HamburgerMenuProps {
   onShowHeatWaveCountChange?: (enabled: boolean) => void;
   showColdWaveCount?: boolean;
   onShowColdWaveCountChange?: (enabled: boolean) => void;
+  allowHistoricalEdits?: boolean;
+  onAllowHistoricalEditsChange?: (enabled: boolean) => void;
+  syntaxHighlightingEnabled?: boolean;
+  onSyntaxHighlightingEnabledChange?: (enabled: boolean) => void;
   onDeleteAllData?: () => void;
   currentIdentity?: string | null;
   onLogout?: () => void;
   dbStatus?: { configured: boolean; healthy: boolean; provider: string; error?: string; datesCount?: number } | null;
   onMigrateToDatabase?: () => Promise<void>;
   onOpenAbout?: () => void;
+  viewMode?: OperationalViewMode;
+  onViewModeChange?: (mode: OperationalViewMode) => void;
 }
 
 export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
@@ -134,12 +141,18 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
   onShowHeatWaveCountChange,
   showColdWaveCount = true,
   onShowColdWaveCountChange,
+  allowHistoricalEdits = false,
+  onAllowHistoricalEditsChange,
+  syntaxHighlightingEnabled = true,
+  onSyntaxHighlightingEnabledChange,
   onDeleteAllData,
   currentIdentity,
   onLogout,
   dbStatus,
   onMigrateToDatabase,
   onOpenAbout,
+  viewMode = 'standard',
+  onViewModeChange,
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -270,6 +283,38 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
           {/* SECTION: SETTINGS (Integrated directly into sidebar) */}
           <div className="nav-group">
             <div className="nav-group-title">SETTINGS</div>
+
+            {/* View Mode (Standard vs Minimal Input) */}
+            {onViewModeChange && (
+              <div className="sidebar-setting-block">
+                <div className="setting-subhead">Operational View Mode</div>
+                <div className="sidebar-segmented" role="radiogroup" aria-label="Operational View Mode">
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={viewMode === 'standard'}
+                    className={`btn-seg ${viewMode === 'standard' ? 'active' : ''}`}
+                    onClick={() => onViewModeChange('standard')}
+                  >
+                    Standard (Default)
+                  </button>
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={viewMode === 'minimal'}
+                    className={`btn-seg ${viewMode === 'minimal' ? 'active' : ''}`}
+                    onClick={() => onViewModeChange('minimal')}
+                  >
+                    Minimal View
+                  </button>
+                </div>
+                <div className="setting-help-text">
+                  {viewMode === 'minimal'
+                    ? 'Minimal view: 3 large elements with day/month stepper and 03Z/12Z submission buttons.'
+                    : 'Standard view: Full meteorological workspace with operational reports and data entry.'}
+                </div>
+              </div>
+            )}
 
             {/* 1. Theme (Top of Settings with compact swatches) */}
             <div className="sidebar-setting-block theme-setting-block">
@@ -458,6 +503,70 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
                   {showColdWaveCount
                     ? 'Cold wave station counts are displayed in the Weather Summary report.'
                     : 'Cold wave column is removed from the Weather Summary presentation.'}
+                </div>
+              </div>
+            )}
+
+            {/* Allow Editing Historical Dates */}
+            {onAllowHistoricalEditsChange && (
+              <div className="sidebar-setting-block">
+                <div className="setting-subhead">Allow Editing Historical Dates</div>
+                <div className="sidebar-segmented" role="radiogroup" aria-label="Allow Editing Historical Dates">
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={allowHistoricalEdits}
+                    className={`btn-seg ${allowHistoricalEdits ? 'active' : ''}`}
+                    onClick={() => onAllowHistoricalEditsChange(true)}
+                  >
+                    Enabled
+                  </button>
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={!allowHistoricalEdits}
+                    className={`btn-seg ${!allowHistoricalEdits ? 'active' : ''}`}
+                    onClick={() => onAllowHistoricalEditsChange(false)}
+                  >
+                    Disabled
+                  </button>
+                </div>
+                <div className="setting-help-text">
+                  {allowHistoricalEdits
+                    ? 'Enabled: Forecasters can enter and update observations for past dates.'
+                    : 'Disabled (Default): Entering or modifying observations for past dates is locked.'}
+                </div>
+              </div>
+            )}
+
+            {/* SYNOP Syntax & Anomaly Highlighting */}
+            {onSyntaxHighlightingEnabledChange && (
+              <div className="sidebar-setting-block">
+                <div className="setting-subhead">SYNOP Syntax & Anomaly Highlighting</div>
+                <div className="sidebar-segmented" role="radiogroup" aria-label="SYNOP Syntax & Anomaly Highlighting">
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={syntaxHighlightingEnabled}
+                    className={`btn-seg ${syntaxHighlightingEnabled ? 'active' : ''}`}
+                    onClick={() => onSyntaxHighlightingEnabledChange(true)}
+                  >
+                    Enabled
+                  </button>
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={!syntaxHighlightingEnabled}
+                    className={`btn-seg ${!syntaxHighlightingEnabled ? 'active' : ''}`}
+                    onClick={() => onSyntaxHighlightingEnabledChange(false)}
+                  >
+                    Disabled
+                  </button>
+                </div>
+                <div className="setting-help-text">
+                  {syntaxHighlightingEnabled
+                    ? 'Enabled (Default): Color-codes SYNOP groups and flags abnormal temperatures, RH > 100%, and heavy rainfall.'
+                    : 'Disabled: Standard plain text editor.'}
                 </div>
               </div>
             )}

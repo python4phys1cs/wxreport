@@ -130,21 +130,21 @@ export function checkObservationReminder(
 /**
  * Automatically resolves the active observation slot based on current Asia/Kolkata time.
  * Rules:
- * - 03 UTC / 0830 IST: Active when IST time is 07:30 – 09:30 IST.
- * - 12 UTC / 1730 IST: Active when IST time is within the 1-hour operational window around 1730 IST (17:00 – 18:00 IST).
- * - Outside these windows: Returns null (indicating user/default slot should be retained).
+ * - 03 UTC / 0830 IST: Active within 3-hour operational window around morning observation (07:00 to < 10:00 IST).
+ * - 12 UTC / 1730 IST: Active within 3-hour operational window around evening observation (16:30 to < 19:30 IST).
+ * - Outside these windows: Returns null (preserving manual user selection).
  */
 export function getAutoUtcSlot(dateInput: Date = new Date()): UtcSlot | null {
   const { hour, minute } = getKolkataTimeComponents(dateInput);
   const minutesSinceMidnight = hour * 60 + minute;
 
-  // 07:30 IST = 450 min, 09:30 IST = 570 min
-  if (minutesSinceMidnight >= 7 * 60 + 30 && minutesSinceMidnight <= 9 * 60 + 30) {
+  // 3-hour window around 0830 IST: 07:00 (420 min) to < 10:00 (600 min)
+  if (minutesSinceMidnight >= 7 * 60 && minutesSinceMidnight < 10 * 60) {
     return '03Z';
   }
 
-  // 1-hour operational window around 1730 IST: 17:00 (1020 min) to 18:00 (1080 min)
-  if (minutesSinceMidnight >= 17 * 60 && minutesSinceMidnight <= 18 * 60) {
+  // 3-hour window around 1730 IST: 16:30 (990 min) to < 19:30 (1170 min)
+  if (minutesSinceMidnight >= 16 * 60 + 30 && minutesSinceMidnight < 19 * 60 + 30) {
     return '12Z';
   }
 

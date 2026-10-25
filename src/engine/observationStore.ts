@@ -783,6 +783,13 @@ export interface ObservationStore extends HistoricalObservationProvider {
     updates: Partial<PersistedStationObservation>
   ): PersistedStationObservation;
 
+  /** Hydrates/updates observation state directly from server or archive without treating non-edited fields as manual cell edits. */
+  setStationObservationFromServer(
+    date: string,
+    stationId: string,
+    obs: Partial<PersistedStationObservation>
+  ): PersistedStationObservation;
+
   /** Retrieves resolved observation state for a station for a reporting date. */
   getStationObservation(stationId: string, date?: string): PersistedStationObservation | null;
 
@@ -1587,6 +1594,35 @@ export class InMemoryObservationStore implements ObservationStore {
     this.updateHistorySnapshot(updated, cleanDate);
     this.persist();
     return updated;
+  }
+
+  /**
+   * Hydrates/updates observation state directly from server or archive without treating fields as manual cell edits.
+   */
+  setStationObservationFromServer(
+    date: string,
+    stationId: string,
+    obs: Partial<PersistedStationObservation>
+  ): PersistedStationObservation {
+    const cleanDate = date.trim();
+    const cleanId = stationId.trim();
+    const map = this.getDateMap(cleanDate);
+    const canonical = getStation(cleanId);
+    const existing = map.get(cleanId) ?? createEmptyStationObservation(cleanId, cleanDate);
+
+    const record: PersistedStationObservation = {
+      ...existing,
+      ...obs,
+      stationId: cleanId,
+      stationName: canonical ? canonical.name : (obs.stationName || existing.stationName || undefined),
+      reportingDate: cleanDate,
+      manualEdits: obs.manualEdits && Object.keys(obs.manualEdits).length > 0 ? { ...obs.manualEdits } : undefined,
+    };
+
+    map.set(cleanId, record);
+    this.updateHistorySnapshot(record, cleanDate);
+    this.persist();
+    return record;
   }
 
   /**

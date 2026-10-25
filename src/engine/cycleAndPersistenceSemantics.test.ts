@@ -311,4 +311,128 @@ describe('Operational Reporting Cycle & Persistence Semantics Regression Suite',
       assert.equal(headings[1], 'at 1730 IST');
     });
   });
+
+  describe('8. 12Z Observation Update After Server Rehydration (Root Cause Fix)', () => {
+    it('successfully updates Tmax and 1730 RH from 12Z after store was rehydrated from Supabase via setStationObservationFromServer', () => {
+      const store = new InMemoryObservationStore();
+      const testDate = '2026-05-15';
+      const stationId = '42867'; // Nagpur
+
+      // 1. Simulate morning 03Z persisted observation rehydrated from Supabase
+      store.setStationObservationFromServer(testDate, stationId, {
+        stationId,
+        reportingDate: testDate,
+        dryBulb0830: 32.4,
+        dewPoint0830: 21.5,
+        tmin: 24.0,
+        rainfall0830: 0.0,
+        rh0830: 53,
+        mslPressure0830: 1009.2,
+        tmax: null,
+        rh1730: null,
+        rainfall1730: null,
+      });
+
+      const before12Z = store.getStationObservation(stationId, testDate);
+      assert.ok(before12Z);
+      assert.equal(before12Z.tmin, 24.0);
+      assert.equal(before12Z.tmax, null);
+      assert.equal(before12Z.rh1730, null);
+      // Ensure manualEdits is not falsely set on all fields
+      assert.equal(before12Z.manualEdits?.tmax, undefined);
+
+      // 2. Forecaster ingests 12Z bulletin
+      const bulletin12Z = `AAXX 15124 42867 11560 02502 10380 20180 40075 333 10425 58005 555 00050=`;
+      store.ingestBulletin('12Z', bulletin12Z, testDate);
+
+      // 3. Confirm 12Z fields are now successfully populated
+      const after12Z = store.getStationObservation(stationId, testDate);
+      assert.ok(after12Z);
+      assert.equal(after12Z.tmin, 24.0, '03Z Tmin must be preserved');
+      assert.equal(after12Z.tmax, 42.5, '12Z Tmax must be updated to 42.5°C');
+      assert.equal(after12Z.rh1730, 31, '12Z RH must be updated to 31%');
+      assert.equal(after12Z.rainfall1730, 5.0, '12Z rainfall must be updated to 5.0 mm');
+    });
+  });
+
+  describe('9. AAXX YYGG4 Header Validation & Day/Slot Mismatch Prevention', () => {
+    it('validates matching date and slot successfully', async () => {
+      const { validateBulletinHeader } = await import('../parser/synopDecoder.ts');
+      const res03Z = validateBulletinHeader('AAXX 15034 42867 11560 ...=', '2026-05-15', '03Z');
+      assert.equal(res03Z.valid, true);
+
+      const res12Z = validateBulletinHeader('AAXX 15124 42867 11560 ...=', '2026-05-15', '12Z');
+      assert.equal(res12Z.valid, true);
+    });
+
+    it('rejects slot mismatch with clear diagnostic error', async () => {
+      const { validateBulletinHeader } = await import('../parser/synopDecoder.ts');
+      // 12Z bulletin submitted under 03Z slot
+      const res = validateBulletinHeader('AAXX 15124 42867 ...=', '2026-05-15', '03Z');
+      assert.equal(res.valid, false);
+      assert.ok(res.error?.includes('Slot Mismatch Detected'));
+      assert.ok(res.error?.includes('12 UTC'));
+    });
+
+    it('rejects date mismatch with clear diagnostic error', async () => {
+      const { validateBulletinHeader } = await import('../parser/synopDecoder.ts');
+      // Bulletin header indicates day 15, but reporting date is 2026-05-16
+      const res = validateBulletinHeader('AAXX 15034 42867 ...=', '2026-05-16', '03Z');
+      assert.equal(res.valid, false);
+      assert.ok(res.error?.includes('Date Mismatch Detected'));
+      assert.ok(res.error?.includes('day 15'));
+      assert.ok(res.error?.includes('2026-05-16'));
+    });
+
+    it('gracefully accepts single-station paste without AAXX header', async () => {
+      const { validateBulletinHeader } = await import('../parser/synopDecoder.ts');
+      const res = validateBulletinHeader('42867 11560 70000 10324 20215 40092 333 10420 20240=', '2026-05-15', '03Z');
+      assert.equal(res.valid, true);
+    });
+  });
+
+  describe('10. SYNOP Anomaly Checks & Plausibility Validation', () => {
+    it('detects RH > 100% as a physical conflict error', async () => {
+      const { validateSingleTelegram } = await import('../parser/synopValidator.ts');
+      // Dry bulb = 20.0°C (10200), Dew point = 21.0°C (20210) -> dewPoint > dryBulb
+      const telegram = '42867 11560 70000 10200 20210 40092 333 10400 20180=';
+      const res = validateSingleTelegram(telegram, '03Z');
+      assert.equal(res.issues.some((i) => i.severity === 'error' && i.field === 'dewPoint'), true);
+    });
+
+    it('detects rainfall > 600 mm as an error', async () => {
+      const { validateSingleTelegram } = await import('../parser/synopValidator.ts');
+      // Section 555: 06500 -> 650.0 mm (> 600 mm)
+      const telegram = '42867 11560 70000 10300 20200 40092 333 10400 20200 555 06500=';
+      const res = validateSingleTelegram(telegram, '03Z');
+      assert.equal(res.issues.some((i) => i.severity === 'error' && i.field === 'rainfall'), true);
+    });
+
+    it('detects temperature departure > 10°C when context is provided', async () => {
+      const { validateSingleTelegram } = await import('../parser/synopValidator.ts');
+      // Tmin = 35.0°C, Normal Tmin = 20.0°C -> departure = +15.0°C (> 10°C)
+      const telegram = '42867 11560 70000 10380 20200 40092 333 10420 20350=';
+      const res = validateSingleTelegram(telegram, '03Z', undefined, {
+        reportingDate: '2026-05-15',
+        normalProvider: {
+          getNormalsForDate: () => ({ tmax: 42.0, tmin: 20.0 }),
+        },
+      });
+      assert.equal(res.issues.some((i) => i.field === 'tmin_departure'), true);
+    });
+
+    it('detects 24-hour temperature change > 10°C when context is provided', async () => {
+      const { validateSingleTelegram } = await import('../parser/synopValidator.ts');
+      // Today Tmin = 15.0°C (20150), Yesterday Tmin = 27.0°C -> 24h change = -12.0°C (> 10°C)
+      const telegram = '42867 11560 70000 10300 20200 40092 333 10420 20150=';
+      const res = validateSingleTelegram(telegram, '03Z', undefined, {
+        reportingDate: '2026-05-15',
+        observationStore: {
+          getStationObservation: () => ({ tmax: 42.0, tmin: 27.0 }),
+        },
+      });
+      assert.equal(res.issues.some((i) => i.field === 'tmin_24h_change'), true);
+    });
+  });
 });
+

@@ -567,6 +567,11 @@ export function parse12UtcBulletin(
 }
 
 /**
+ * Convenient alias for parse12UtcBulletin.
+ */
+export const parse12ZBulletin = parse12UtcBulletin;
+
+/**
  * Detailed 12 UTC bulletin parser isolating allowlisted observations and unlisted codes.
  */
 export function parse12UtcBulletinDetailed(rawBulletin: string): Synop12UtcBulletinParseResult {
@@ -619,3 +624,93 @@ export function parse12UtcBulletinDetailed(rawBulletin: string): Synop12UtcBulle
 
   return { observations, unrecognizedStationIds, malformedCount };
 }
+
+/**
+ * Parsed AAXX YYGG4 bulletin header details.
+ */
+export interface SynopHeaderInfo {
+  day: number | null;
+  dayString: string | null;
+  hour: number | null;
+  slot: '03Z' | '12Z' | null;
+  valid: boolean;
+  rawHeader: string | null;
+}
+
+/**
+ * Parses the AAXX YYGG4 header group from a SYNOP bulletin string.
+ * Example: "AAXX 15034" -> day 15, hour 03, slot "03Z".
+ * Example: "AAXX 15124" -> day 15, hour 12, slot "12Z".
+ */
+export function parseSynopHeader(bulletin: string): SynopHeaderInfo | null {
+  if (!bulletin || typeof bulletin !== 'string') return null;
+
+  const match = bulletin.match(/\bAAXX\s+(\d{4,5})(?:\s+(?:COR|AMD))?\b/i);
+  if (!match) return null;
+
+  const rawGroup = match[1];
+  const dayStr = rawGroup.substring(0, 2);
+  const hourStr = rawGroup.substring(2, 4);
+  const day = parseInt(dayStr, 10);
+  const hour = parseInt(hourStr, 10);
+
+  if (isNaN(day) || isNaN(hour)) return null;
+
+  let slot: '03Z' | '12Z' | null = null;
+  if (hour >= 0 && hour <= 6) {
+    slot = '03Z';
+  } else if (hour >= 10 && hour <= 16) {
+    slot = '12Z';
+  }
+
+  return {
+    day,
+    dayString: dayStr,
+    hour,
+    slot,
+    valid: true,
+    rawHeader: match[0],
+  };
+}
+
+/**
+ * Cross-checks the AAXX YYGG4 bulletin header against the selected reporting date and slot.
+ * Returns valid: false with an explicit error message if a mismatch is detected.
+ */
+export function validateBulletinHeader(
+  bulletin: string,
+  selectedDate: string,
+  selectedSlot: '03Z' | '12Z'
+): { valid: boolean; error?: string; headerInfo?: SynopHeaderInfo } {
+  const header = parseSynopHeader(bulletin);
+  if (!header) {
+    // If no AAXX header is present, allow single-station pastes to proceed
+    return { valid: true };
+  }
+
+  // 1. Cross-check observation slot
+  if (header.slot && header.slot !== selectedSlot) {
+    const slotLabel = header.slot === '03Z' ? '03 UTC (08:30 IST)' : '12 UTC (17:30 IST)';
+    const selectedLabel = selectedSlot === '03Z' ? '03 UTC (08:30 IST)' : '12 UTC (17:30 IST)';
+    return {
+      valid: false,
+      error: `Slot Mismatch Detected: The bulletin header '${header.rawHeader}' indicates ${slotLabel}, but the active observation slot is set to ${selectedLabel}. Please toggle the observation slot to ${header.slot} or check your bulletin text.`,
+      headerInfo: header,
+    };
+  }
+
+  // 2. Cross-check date (day of month)
+  if (selectedDate && /^\d{4}-\d{2}-\d{2}$/.test(selectedDate)) {
+    const selectedDay = parseInt(selectedDate.split('-')[2], 10);
+    if (header.day !== null && header.day !== selectedDay) {
+      return {
+        valid: false,
+        error: `Date Mismatch Detected: The bulletin header '${header.rawHeader}' indicates day ${header.dayString}, but your selected reporting date is ${selectedDate} (day ${String(selectedDay).padStart(2, '0')}). Please check for mismatch in date or update your reporting date.`,
+        headerInfo: header,
+      };
+    }
+  }
+
+  return { valid: true, headerInfo: header };
+}
+

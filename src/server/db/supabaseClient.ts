@@ -311,10 +311,16 @@ export class SupabaseObservationStoreService {
     }
 
     const rowsToUpsert: DbStationObservationRow[] = [];
+    const priorDayRowsToUpsert: DbStationObservationRow[] = [];
 
     if (utcSlot === '03Z') {
       const parsed03 = parseSynopBulletin(rawBulletin);
       decodedCount = parsed03.length;
+      const priorExisting = await this.getObservationsForDate(previousDate).catch(() => []);
+      const priorExistingMap = new Map<string, PersistedStationObservation>();
+      for (const p of priorExisting) {
+        priorExistingMap.set(p.stationId, p);
+      }
 
       for (const obs of parsed03) {
         if (!obs.stationId) continue;
@@ -372,6 +378,47 @@ export class SupabaseObservationStoreService {
             current.tmax = obs.tmaxPreviousDay;
             current.tmaxDate = previousDate;
             current.tmaxSlot = '03Z';
+          }
+
+          // Backfill previous day (D0) record in Supabase so historical 24h comparisons succeed
+          const priorRec = priorExistingMap.get(stnId);
+          if (priorRec) {
+            if ((priorRec.tmax === null || priorRec.tmax === undefined) && !priorRec.manualEdits?.tmax) {
+              priorRec.tmax = obs.tmaxPreviousDay;
+              priorRec.tmaxDate = previousDate;
+              priorRec.tmaxSlot = '03Z';
+              priorDayRowsToUpsert.push(observationToRow(priorRec));
+            }
+          } else {
+            const newPrior: PersistedStationObservation = {
+              stationId: stnId,
+              stationName: getStation(stnId)?.name,
+              reportingDate: previousDate,
+              tmax: obs.tmaxPreviousDay,
+              tmaxDate: previousDate,
+              tmaxSlot: '03Z',
+              tmin: null,
+              tminDate: null,
+              tminSlot: null,
+              tmaxPreviousDay: null,
+              rh0830: null,
+              rh1730: null,
+              dryBulb0830: null,
+              dewPoint0830: null,
+              dryBulb1730: null,
+              dewPoint1730: null,
+              rainfall0830: null,
+              rainfall1730: null,
+              rainfall: null,
+              mslPressure0830: null,
+              mslPressure1730: null,
+              visibilityCode: null,
+              lastUpdatedSlot: '03Z',
+              lastUpdatedDate: cleanDate,
+              has03Z: false,
+              has12Z: false,
+            };
+            priorDayRowsToUpsert.push(observationToRow(newPrior));
           }
         }
 
@@ -540,6 +587,16 @@ export class SupabaseObservationStoreService {
 
       if (upsertErr) {
         throw new Error(`Failed to commit observations to PostgreSQL: ${upsertErr.message}`);
+      }
+    }
+
+    if (priorDayRowsToUpsert.length > 0) {
+      const { error: priorErr } = await this.client
+        .from('station_observations')
+        .upsert(priorDayRowsToUpsert, { onConflict: 'reporting_date,station_id' });
+
+      if (priorErr) {
+        console.warn('Prior day Tmax backfill warning:', priorErr.message);
       }
     }
 

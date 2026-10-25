@@ -10,7 +10,11 @@ import {
   DEFAULT_CENTRAL_INDIA_LIMITS,
   type SynopBulletinValidationReport,
   type SynopValidationLimits,
+  type ValidationContext,
 } from '../parser/synopValidator.ts';
+import { validateBulletinHeader } from '../parser/synopDecoder.ts';
+import { getTodayKolkata } from '../utils/timeSlot.ts';
+import { SynopCodeEditor } from './SynopCodeEditor.tsx';
 
 interface SynopInputProps {
   reportingDate: string;
@@ -25,6 +29,10 @@ interface SynopInputProps {
   isGenerating: boolean;
   errorMessage: string | null;
   dueReminderText?: string | null;
+  allowHistoricalEdits?: boolean;
+  syntaxHighlightingEnabled?: boolean;
+  validationContext?: ValidationContext;
+  isModalMode?: boolean;
 }
 
 /**
@@ -56,8 +64,22 @@ export const SynopInput = forwardRef<HTMLTextAreaElement, SynopInputProps>(({
   isGenerating,
   errorMessage,
   dueReminderText,
+  allowHistoricalEdits = false,
+  syntaxHighlightingEnabled = true,
+  validationContext,
+  isModalMode = false,
 }, ref) => {
   const is03Z = utcSlot === '03Z';
+  const todayKolkata = getTodayKolkata();
+  const isHistoricalDate = Boolean(reportingDate && reportingDate < todayKolkata);
+  const isHistoricalLocked = isHistoricalDate && !allowHistoricalEdits;
+
+  const [headerError, setHeaderError] = useState<string | null>(null);
+
+  // Clear header error when synopText, reportingDate, or utcSlot changes
+  useEffect(() => {
+    setHeaderError(null);
+  }, [synopText, reportingDate, utcSlot]);
 
   // SYNOP Checker state
   const [isCheckerOpen, setIsCheckerOpen] = useState<boolean>(false);
@@ -71,10 +93,10 @@ export const SynopInput = forwardRef<HTMLTextAreaElement, SynopInputProps>(({
         setValidationReport(null);
         return;
       }
-      const report = validateSynopBulletin(text, slot, currentLimits);
+      const report = validateSynopBulletin(text, slot, currentLimits, validationContext);
       setValidationReport(report);
     },
-    []
+    [validationContext]
   );
 
   const handleToggleChecker = () => {
@@ -100,114 +122,138 @@ export const SynopInput = forwardRef<HTMLTextAreaElement, SynopInputProps>(({
   const handleLocalClear = () => {
     setValidationReport(null);
     setIsCheckerOpen(false);
+    setHeaderError(null);
     onClear();
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isHistoricalLocked) {
+      setHeaderError("Editing historical observations is locked. Enable 'Allow editing historical dates' in sidebar Settings to modify past records.");
+      return;
+    }
+    const headerValidation = validateBulletinHeader(synopText, reportingDate, utcSlot);
+    if (!headerValidation.valid) {
+      setHeaderError(headerValidation.error ?? 'SYNOP header mismatch detected.');
+      return;
+    }
+    setHeaderError(null);
     onGenerate();
   };
 
   return (
     <section className="controls-panel no-print" aria-label="Operational Data Entry">
       <form onSubmit={handleSubmit}>
-        <div className="controls-top-row">
-          {/* Single Reporting Date Control with Day Arrows */}
-          <div className="control-group date-group">
-            <label htmlFor="reporting-date" className="control-label">
-              Reporting Date:
-            </label>
-            <div className="date-input-nav-wrapper">
-              <button
-                type="button"
-                className="btn-date-nav btn-date-prev"
-                onClick={() => onReportingDateChange(shiftDateString(reportingDate, -1))}
-                disabled={isGenerating || !reportingDate}
-                title="Previous Day (Back 1 day)"
-                aria-label="Previous Day"
-              >
-                ◀
-              </button>
-              <input
-                id="reporting-date"
-                type="date"
-                className="control-input-date"
-                value={reportingDate}
-                onChange={(e) => onReportingDateChange(e.target.value)}
-                disabled={isGenerating}
-                required
-              />
-              <button
-                type="button"
-                className="btn-date-nav btn-date-next"
-                onClick={() => onReportingDateChange(shiftDateString(reportingDate, 1))}
-                disabled={isGenerating || !reportingDate}
-                title="Next Day (Forward 1 day)"
-                aria-label="Next Day"
-              >
-                ▶
-              </button>
+        {!isModalMode && (
+          <div className="controls-top-row">
+            {/* Single Reporting Date Control with Day Arrows */}
+            <div className="control-group date-group">
+              <label htmlFor="reporting-date" className="control-label">
+                Reporting Date:
+              </label>
+              <div className="date-input-nav-wrapper">
+                <button
+                  type="button"
+                  className="btn-date-nav btn-date-prev"
+                  onClick={() => onReportingDateChange(shiftDateString(reportingDate, -1))}
+                  disabled={isGenerating || !reportingDate}
+                  title="Previous Day (Back 1 day)"
+                  aria-label="Previous Day"
+                >
+                  ◀
+                </button>
+                <input
+                  id="reporting-date"
+                  type="date"
+                  className="control-input-date"
+                  value={reportingDate}
+                  onChange={(e) => onReportingDateChange(e.target.value)}
+                  disabled={isGenerating}
+                  required
+                />
+                <button
+                  type="button"
+                  className="btn-date-nav btn-date-next"
+                  onClick={() => onReportingDateChange(shiftDateString(reportingDate, 1))}
+                  disabled={isGenerating || !reportingDate}
+                  title="Next Day (Forward 1 day)"
+                  aria-label="Next Day"
+                >
+                  ▶
+                </button>
+              </div>
+            </div>
+
+            {/* Observation Slot Selection */}
+            <div className="control-group slot-group">
+              <div className="slot-label-row">
+                <label className="control-label">
+                  Observation Slot:
+                </label>
+                {dueReminderText && (
+                  <span className="due-observation-hint" role="status">
+                    &bull; {dueReminderText}
+                  </span>
+                )}
+              </div>
+              <div className="utc-toggle" role="radiogroup" aria-label="Observation Slot">
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={is03Z}
+                  className={`btn-utc-toggle ${is03Z ? 'active' : ''}`}
+                  onClick={() => onUtcSlotChange?.('03Z')}
+                  disabled={isGenerating}
+                >
+                  03 UTC (0830 IST)
+                </button>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={!is03Z}
+                  className={`btn-utc-toggle ${!is03Z ? 'active' : ''}`}
+                  onClick={() => onUtcSlotChange?.('12Z')}
+                  disabled={isGenerating}
+                >
+                  12 UTC (1730 IST)
+                </button>
+              </div>
             </div>
           </div>
+        )}
 
-          {/* Observation Slot Selection */}
-          <div className="control-group slot-group">
-            <div className="slot-label-row">
-              <label className="control-label">
-                Observation Slot:
-              </label>
-              {dueReminderText && (
-                <span className="due-observation-hint" role="status">
-                  &bull; {dueReminderText}
+        {/* Monospace SYNOP Bulletin Textarea with Syntax Highlighting */}
+        <div className="control-group textarea-group">
+          {(!isModalMode || isHistoricalLocked) && (
+            <div className="textarea-header-row">
+              {!isModalMode && (
+                <label htmlFor="synop-bulletin" className="control-label">
+                  {is03Z ? '03 UTC SYNOP Bulletin (0830 IST Observation):' : '12 UTC SYNOP Bulletin (1730 IST Observation):'}
+                </label>
+              )}
+              {isHistoricalLocked && (
+                <span className="badge-locked" style={{ fontSize: '0.6875rem' }} title="Historical observations locked in Settings">
+                  🔒 Historical Date Locked
                 </span>
               )}
             </div>
-            <div className="utc-toggle" role="radiogroup" aria-label="Observation Slot">
-              <button
-                type="button"
-                role="radio"
-                aria-checked={is03Z}
-                className={`btn-utc-toggle ${is03Z ? 'active' : ''}`}
-                onClick={() => onUtcSlotChange?.('03Z')}
-                disabled={isGenerating}
-              >
-                03 UTC (0830 IST)
-              </button>
-              <button
-                type="button"
-                role="radio"
-                aria-checked={!is03Z}
-                className={`btn-utc-toggle ${!is03Z ? 'active' : ''}`}
-                onClick={() => onUtcSlotChange?.('12Z')}
-                disabled={isGenerating}
-              >
-                12 UTC (1730 IST)
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Monospace SYNOP Bulletin Textarea */}
-        <div className="control-group textarea-group">
-          <div className="textarea-header-row">
-            <label htmlFor="synop-bulletin" className="control-label">
-              {is03Z ? '03 UTC SYNOP Bulletin (0830 IST Observation):' : '12 UTC SYNOP Bulletin (1730 IST Observation):'}
-            </label>
-          </div>
-          <textarea
+          )}
+          <SynopCodeEditor
             ref={ref}
-            id="synop-bulletin"
-            className="control-textarea-synop"
-            rows={5}
+            value={synopText}
+            onChange={onSynopTextChange}
+            utcSlot={utcSlot}
+            reportingDate={reportingDate}
+            validationContext={validationContext}
+            syntaxHighlightingEnabled={syntaxHighlightingEnabled}
+            disabled={isGenerating || isHistoricalLocked}
+            rows={isModalMode ? 7 : 5}
+            aria-label={is03Z ? '03 UTC SYNOP Bulletin input' : '12 UTC SYNOP Bulletin input'}
             placeholder={
               is03Z
                 ? 'Paste raw 03 UTC SYNOP bulletin here (AAXX 01034 42933 ...)...'
                 : 'Paste raw 12 UTC SYNOP bulletin here (AAXX 01124 42933 ...)...'
             }
-            value={synopText}
-            onChange={(e) => onSynopTextChange(e.target.value)}
-            disabled={isGenerating}
-            spellCheck={false}
           />
         </div>
 
@@ -403,7 +449,14 @@ export const SynopInput = forwardRef<HTMLTextAreaElement, SynopInputProps>(({
                               <span className="text-muted">---</span>
                             )}
                           </td>
-                          <td className="reason-cell">{issue.message}</td>
+                          <td className="reason-cell">
+                            {issue.ruleId && (
+                              <span className="checker-rule-tag" title={issue.category || 'IMD Validation Rule'}>
+                                {issue.ruleId}
+                              </span>
+                            )}
+                            <span>{issue.message}</span>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -418,9 +471,27 @@ export const SynopInput = forwardRef<HTMLTextAreaElement, SynopInputProps>(({
           </div>
         )}
 
-        {errorMessage && (
+        {isHistoricalLocked && (
+          <div
+            className="alert-warning"
+            role="alert"
+            style={{
+              padding: '8px 12px',
+              borderRadius: '4px',
+              background: '#fef3c7',
+              color: '#92400e',
+              border: '1px solid #fde68a',
+              fontSize: '0.8125rem',
+              marginBottom: '0.75rem',
+            }}
+          >
+            🔒 <strong>Historical Date Guard:</strong> You are viewing a past date ({reportingDate}). Entering or updating historical observations is locked to prevent accidental data overwrites. Enable <em>'Allow editing historical dates'</em> in the sidebar Settings to submit data for this date.
+          </div>
+        )}
+
+        {(headerError || errorMessage) && (
           <div className="alert-error" role="alert">
-            {errorMessage}
+            {headerError || errorMessage}
           </div>
         )}
 
@@ -428,7 +499,7 @@ export const SynopInput = forwardRef<HTMLTextAreaElement, SynopInputProps>(({
           <button
             type="submit"
             className="btn btn-primary"
-            disabled={isGenerating || !synopText.trim() || !reportingDate.trim()}
+            disabled={isGenerating || isHistoricalLocked || !synopText.trim() || !reportingDate.trim()}
           >
             {isGenerating ? 'Processing...' : `Process ${utcSlot} & Generate`}
           </button>

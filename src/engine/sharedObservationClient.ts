@@ -113,15 +113,9 @@ export class SharedObservationClient {
     const data = await res.json();
     const obsList: PersistedStationObservation[] = data.observations || [];
 
-    // Sync into in-memory store so reportOrchestrator immediately operates on authoritative data
+    // Sync into in-memory store cleanly without turning all server fields into artificial manual edits
     for (const obs of obsList) {
-      const current = defaultObservationStore.getStationObservation(obs.stationId, cleanDate);
-      if (!current) {
-        defaultObservationStore.updateStationObservation(cleanDate, obs.stationId, obs);
-      } else {
-        // Sync fields non-destructively
-        defaultObservationStore.updateStationObservation(cleanDate, obs.stationId, obs);
-      }
+      defaultObservationStore.setStationObservationFromServer(cleanDate, obs.stationId, obs);
     }
 
     if (data.rawBulletins) {

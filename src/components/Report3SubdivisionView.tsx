@@ -99,7 +99,11 @@ export const Report3SubdivisionView: React.FC<Report3SubdivisionProps> = ({
   isEditMode = false,
   onUpdateStationValue,
 }) => {
-  const [selectedSubId, setSelectedSubId] = useState<string>('all');
+  // Make Vidarbha (subdivision id '26') the default and first focused subdivision
+  const [selectedSubId, setSelectedSubId] = useState<string>(() => {
+    const hasVidarbha = subdivisions.some((s) => s.subdivision.id === '26');
+    return hasVidarbha ? '26' : (subdivisions[0]?.subdivision.id ?? 'all');
+  });
 
   const displayedSubdivisions =
     selectedSubId === 'all'
