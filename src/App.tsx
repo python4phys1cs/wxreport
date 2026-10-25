@@ -265,6 +265,7 @@ export default function App() {
   const handleReportingDateChange = useCallback((newDate: string) => {
     userSelectedDateRef.current = true;
     setReportingDate(newDate);
+    setPendingOverwriteStations([]);
   }, []);
 
   // Periodic synchronization to current Asia/Kolkata date unless deliberately selected by user
@@ -293,6 +294,7 @@ export default function App() {
 
   const handleSlotChange = useCallback((slot: UtcSlot) => {
     setUtcSlot(slot);
+    setPendingOverwriteStations([]);
     if (typeof window !== 'undefined' && window.localStorage) {
       try {
         window.localStorage.setItem('wxops_last_slot', slot);
@@ -620,13 +622,13 @@ export default function App() {
     }
   };
 
-  // Operational View Mode (Default: Standard)
+  // Operational View Mode (Default: Minimal)
   const [viewMode, setViewMode] = useState<OperationalViewMode>(() => {
     if (typeof window !== 'undefined' && window.localStorage) {
       const saved = window.localStorage.getItem('wxops_view_mode');
       if (saved === 'minimal' || saved === 'standard') return saved;
     }
-    return 'standard';
+    return 'minimal';
   });
 
   const handleViewModeChange = (mode: OperationalViewMode) => {
@@ -814,7 +816,7 @@ export default function App() {
     const overwrites = detectOverwrites(utcSlot, synopText, reportingDate, observationStore);
     if (overwrites.length > 0) {
       setPendingOverwriteStations(overwrites);
-      setIsOverwriteModalOpen(true);
+      setIsOverwriteModalOpen(false);
       return;
     }
 
@@ -1073,6 +1075,7 @@ export default function App() {
   const handleClear = () => {
     setSynopText('');
     setErrorMessage(null);
+    setPendingOverwriteStations([]);
   };
 
   const handlePrint = () => {
@@ -1206,6 +1209,9 @@ export default function App() {
           observationStore,
         }}
         slotStatusLabel={modalSlot === '03Z' ? status03Z.statusLabel : status12Z.statusLabel}
+        pendingOverwrites={pendingOverwriteStations}
+        onConfirmOverwrite={commitBulletin}
+        onCancelOverwrite={() => setPendingOverwriteStations([])}
       />
 
       {/* About WXOps Modal */}
@@ -1485,6 +1491,9 @@ export default function App() {
               normalProvider,
               observationStore,
             }}
+            pendingOverwrites={pendingOverwriteStations}
+            onConfirmOverwrite={commitBulletin}
+            onCancelOverwrite={() => setPendingOverwriteStations([])}
           />
 
           {/* Processing Summary Bar */}

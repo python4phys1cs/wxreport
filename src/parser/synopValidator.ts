@@ -11,6 +11,7 @@ import {
   parseSection333,
   parseRainfall,
   calculateLegacyRelativeHumidity,
+  splitBulletinIntoTelegrams,
 } from './synopDecoder.ts';
 import type { UtcSlot } from '../engine/observationStore.ts';
 
@@ -79,6 +80,14 @@ export const SYNOP_VALIDATION_RULES: readonly SynopValidationRuleDefinition[] = 
     severity: 'error',
     description: 'Section 2 (Marine Data: 222//) is strictly forbidden for inland stations.',
     reference: 'IMD Weather Code 1982/2005 Explanatory Notes, Page 7, Item 7(A)',
+  },
+  {
+    ruleId: 'STR-003',
+    category: 'Structural',
+    name: 'Telegram Terminator Requirement (=)',
+    severity: 'warning',
+    description: 'Each station telegram must end with "=" to delineate observation reports and prevent multi-station parsing corruption.',
+    reference: 'WMO Manual on Codes (WMO-No. 306) Part A & IMD Weather Code 1982/2005 Section 1',
   },
   {
     ruleId: 'RNG-001',
@@ -577,7 +586,7 @@ export function validateSingleTelegram(
 
   // 5. Temperature Validation: Rule TEM-001 & Physical Checks
   // Sign indicators in 1snTTT, 2snTdTdTd, 1snTxTxTx, 2snTnTnTn
-  for (const t of [...sec1Tokens, ...sec3Tokens]) {
+  for (const t of [...sec1Tokens.slice(2), ...sec3Tokens]) {
     if (t.length === 5 && (t.startsWith('1') || t.startsWith('2'))) {
       // In Section 1, tokens[2] is Nddff which might start with 1 or 2
       if (t === windToken) continue;
@@ -1170,29 +1179,35 @@ export function validateSynopBulletin(
     };
   }
 
-  const normalized = rawBulletin.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-  let segments = normalized.split('=');
-  if (segments.length === 1 && !rawBulletin.includes('=')) {
-    segments = [rawBulletin];
-  }
-
+  const extracted = splitBulletinIntoTelegrams(rawBulletin);
   const stationResults: TelegramValidationResult[] = [];
   const seenStationIds = new Set<string>();
 
-  for (let segment of segments) {
-    segment = segment.trim();
-    if (!segment) continue;
+  for (const item of extracted) {
+    if (item.rawText.length < 10) continue;
 
-    // Strip bulletin header
-    segment = segment.replace(/^AAXX\s+\d+(?:\s+(?:COR|AMD))?\s*/i, '');
-    if (segment.length < 10) continue;
+    const res = validateSingleTelegram(item.rawText, utcSlot, customLimits, context);
+    const updatedIssues = [...res.issues];
 
-    const res = validateSingleTelegram(segment, utcSlot, customLimits, context);
+    // STR-003: Check for missing '=' telegram terminator
+    if (!item.hasTerminator) {
+      updatedIssues.push({
+        ruleId: 'STR-003',
+        category: 'Structural',
+        severity: 'warning',
+        stationId: res.stationId,
+        stationName: res.stationName,
+        rawGroup: item.lastGroup,
+        field: 'terminator',
+        decodedValue: 'Missing =',
+        message: `Missing '=' terminator after telegram for station ${res.stationId}${res.stationName ? ` (${res.stationName})` : ''}. Each station observation must end with '=' to prevent telegram merging and parsing errors.`,
+      });
+    }
 
     // Check for duplicate station codes within the same bulletin
     if (res.stationId && res.stationId !== 'UNKNOWN') {
       if (seenStationIds.has(res.stationId)) {
-        const issue: SynopValidationIssue = {
+        updatedIssues.push({
           ruleId: 'STR-001',
           category: 'Structural',
           severity: 'warning',
@@ -1201,20 +1216,21 @@ export function validateSynopBulletin(
           rawGroup: res.stationId,
           field: 'stationId',
           message: `Duplicate station report for ${res.stationId} (${res.stationName || 'Unknown'}) in bulletin. Later telegram may overwrite prior values.`,
-        };
-        const updatedIssues = [...res.issues, issue];
-        stationResults.push({
-          ...res,
-          issues: updatedIssues,
-          warningCount: res.warningCount + 1,
         });
       } else {
         seenStationIds.add(res.stationId);
-        stationResults.push(res);
       }
-    } else {
-      stationResults.push(res);
     }
+
+    const errorCount = updatedIssues.filter((i) => i.severity === 'error').length;
+    const warningCount = updatedIssues.filter((i) => i.severity === 'warning').length;
+
+    stationResults.push({
+      ...res,
+      issues: updatedIssues,
+      errorCount,
+      warningCount,
+    });
   }
 
   const allIssues: SynopValidationIssue[] = stationResults.flatMap((r) => [...r.issues]);

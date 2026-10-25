@@ -23,6 +23,7 @@ interface SynopCodeEditorProps {
   disabled?: boolean;
   placeholder?: string;
   rows?: number;
+  height?: string | number;
 }
 
 interface HighlightedToken {
@@ -42,6 +43,7 @@ export const SynopCodeEditor = forwardRef<HTMLTextAreaElement, SynopCodeEditorPr
   disabled = false,
   placeholder,
   rows = 5,
+  height,
 }, forwardedRef) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
@@ -122,10 +124,12 @@ export const SynopCodeEditor = forwardRef<HTMLTextAreaElement, SynopCodeEditorPr
         }
 
         // 5-digit station code (starts telegram)
-        if (/^\d{5}$/.test(trimmed) && (currentStationId === 'UNKNOWN' || tIdx === 0)) {
+        if (/^\d{5}$/.test(trimmed) && (currentStationId === 'UNKNOWN' || tIdx === 0 || inSec333 || inSec555)) {
           const stn = getStation(trimmed);
           if (stn) {
             currentStationId = trimmed;
+            inSec333 = false;
+            inSec555 = false;
             return { text: token, type: 'station' };
           }
         }
@@ -212,131 +216,157 @@ export const SynopCodeEditor = forwardRef<HTMLTextAreaElement, SynopCodeEditorPr
     return validationReport.allIssues.filter((i) => i.severity === 'error' || i.severity === 'warning');
   }, [validationReport]);
 
+  const boxHeight = height || (rows ? `${Math.max(rows * 26, 140)}px` : '150px');
+
   return (
-    <div className="synop-code-editor-container" style={{ position: 'relative', width: '100%' }}>
-      {/* Syntax Highlighting Backdrop */}
-      {syntaxHighlightingEnabled && tokenizedLines && (
-        <div
-          ref={backdropRef}
-          aria-hidden="true"
-          className="synop-highlight-backdrop"
+    <div className="synop-code-editor-container" style={{ width: '100%' }}>
+      {/* Confined Editor Box with Enabled Scrollbar */}
+      <div
+        className="synop-editor-box"
+        style={{
+          position: 'relative',
+          width: '100%',
+          height: boxHeight,
+          minHeight: '110px',
+          maxHeight: '260px',
+          border: '1.5px solid var(--border-light)',
+          borderRadius: '6px',
+          backgroundColor: 'var(--bg-input, #ffffff)',
+          overflow: 'hidden',
+          boxSizing: 'border-box',
+        }}
+      >
+        {/* Syntax Highlighting Backdrop */}
+        {syntaxHighlightingEnabled && tokenizedLines && (
+          <div
+            ref={backdropRef}
+            aria-hidden="true"
+            className="synop-highlight-backdrop"
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              margin: 0,
+              padding: '8px 12px',
+              border: 'none',
+              boxSizing: 'border-box',
+              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+              fontSize: '13px',
+              lineHeight: '20px',
+              letterSpacing: '0px',
+              tabSize: 4,
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-all',
+              overflowWrap: 'break-word',
+              overflowY: 'scroll',
+              overflowX: 'hidden',
+              scrollbarWidth: 'thin',
+              scrollbarColor: 'transparent transparent',
+              pointerEvents: 'none',
+              color: 'var(--text-main, #1e293b)',
+              zIndex: 1,
+            }}
+          >
+            {tokenizedLines.map((lineTokens, lIdx) => (
+              <div key={lIdx} style={{ margin: 0, padding: 0, lineHeight: '20px' }}>
+                {lineTokens.map((t, tIdx) => {
+                  if (t.type === 'normal') {
+                    return <span key={tIdx} style={{ margin: 0, padding: 0 }}>{t.text}</span>;
+                  }
+                  if (t.type === 'anomaly') {
+                    return (
+                      <mark
+                        key={tIdx}
+                        style={{
+                          backgroundColor: t.severity === 'error' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)',
+                          color: t.severity === 'error' ? '#dc2626' : '#b45309',
+                          textDecoration: `underline wavy ${t.severity === 'error' ? '#ef4444' : '#f59e0b'}`,
+                          padding: 0,
+                          margin: 0,
+                          border: 'none',
+                          fontWeight: 'inherit',
+                        }}
+                        title={t.anomalyMessage}
+                      >
+                        {t.text}
+                      </mark>
+                    );
+                  }
+                  let color = 'inherit';
+                  if (t.type === 'header') color = '#0284c7';
+                  else if (t.type === 'station') color = '#0369a1';
+                  else if (t.type === 'sec333' || t.type === 'sec555') color = '#b45309';
+                  else if (t.type === 'temp-dry') color = '#d97706';
+                  else if (t.type === 'temp-dew') color = '#0d9488';
+                  else if (t.type === 'tmax') color = '#dc2626';
+                  else if (t.type === 'tmin') color = '#2563eb';
+                  else if (t.type === 'rainfall') color = '#15803d';
+                  else if (t.type === 'pressure') color = '#7c3aed';
+                  else if (t.type === 'terminator') color = '#64748b';
+
+                  return (
+                    <span
+                      key={tIdx}
+                      style={{
+                        color,
+                        fontWeight: 'inherit',
+                        padding: 0,
+                        margin: 0,
+                        border: 'none',
+                      }}
+                    >
+                      {t.text}
+                    </span>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Primary Input Textarea: Pixel-matched to backdrop */}
+        <textarea
+          ref={textareaRef}
+          id="synop-bulletin"
+          className="control-textarea-synop"
+          placeholder={placeholder}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onScroll={handleScroll}
+          disabled={disabled}
+          spellCheck={false}
           style={{
             position: 'absolute',
             top: 0,
             left: 0,
-            right: 0,
-            bottom: 0,
+            width: '100%',
+            height: '100%',
+            margin: 0,
             padding: '8px 12px',
-            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-            fontSize: '0.8125rem',
-            lineHeight: '1.45',
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-word',
-            overflow: 'hidden',
-            pointerEvents: 'none',
-            color: 'var(--text-main, #1e293b)',
-            borderRadius: '4px',
+            border: 'none',
+            outline: 'none',
             boxSizing: 'border-box',
+            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+            fontSize: '13px',
+            lineHeight: '20px',
+            letterSpacing: '0px',
+            tabSize: 4,
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-all',
+            overflowWrap: 'break-word',
+            overflowY: 'scroll',
+            overflowX: 'hidden',
+            scrollbarWidth: 'thin',
+            resize: 'none',
+            backgroundColor: 'transparent',
+            color: syntaxHighlightingEnabled ? 'transparent' : 'var(--text-main, #1e293b)',
+            caretColor: 'var(--text-main, #1e293b)',
+            zIndex: 2,
           }}
-        >
-          {tokenizedLines.map((lineTokens, lIdx) => (
-            <div key={lIdx}>
-              {lineTokens.map((t, tIdx) => {
-                if (t.type === 'normal') {
-                  return <span key={tIdx}>{t.text}</span>;
-                }
-                if (t.type === 'anomaly') {
-                  return (
-                    <mark
-                      key={tIdx}
-                      style={{
-                        backgroundColor: t.severity === 'error' ? '#fee2e2' : '#fef3c7',
-                        color: t.severity === 'error' ? '#991b1b' : '#92400e',
-                        borderBottom: t.severity === 'error' ? '2px solid #ef4444' : '2px dashed #f59e0b',
-                        padding: '1px 2px',
-                        borderRadius: '2px',
-                        fontWeight: 600,
-                      }}
-                      title={t.anomalyMessage}
-                    >
-                      {t.text}
-                    </mark>
-                  );
-                }
-                let color = 'inherit';
-                let fontWeight = 400;
-                if (t.type === 'header') {
-                  color = '#0284c7';
-                  fontWeight = 700;
-                } else if (t.type === 'station') {
-                  color = '#0369a1';
-                  fontWeight = 700;
-                } else if (t.type === 'sec333' || t.type === 'sec555') {
-                  color = '#b45309';
-                  fontWeight = 700;
-                } else if (t.type === 'temp-dry') {
-                  color = '#d97706';
-                } else if (t.type === 'temp-dew') {
-                  color = '#0d9488';
-                } else if (t.type === 'tmax') {
-                  color = '#dc2626';
-                  fontWeight = 600;
-                } else if (t.type === 'tmin') {
-                  color = '#2563eb';
-                  fontWeight = 600;
-                } else if (t.type === 'rainfall') {
-                  color = '#15803d';
-                  fontWeight = 600;
-                } else if (t.type === 'pressure') {
-                  color = '#7c3aed';
-                } else if (t.type === 'terminator') {
-                  color = '#64748b';
-                  fontWeight = 700;
-                }
-
-                return (
-                  <span
-                    key={tIdx}
-                    style={{
-                      color,
-                      fontWeight,
-                    }}
-                  >
-                    {t.text}
-                  </span>
-                );
-              })}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Primary Input Textarea */}
-      <textarea
-        ref={textareaRef}
-        id="synop-bulletin"
-        className={`control-textarea-synop ${syntaxHighlightingEnabled ? 'synop-textarea-highlighted' : ''}`}
-        rows={rows}
-        placeholder={placeholder}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onScroll={handleScroll}
-        disabled={disabled}
-        spellCheck={false}
-        style={{
-          position: 'relative',
-          width: '100%',
-          backgroundColor: syntaxHighlightingEnabled ? 'transparent' : undefined,
-          color: syntaxHighlightingEnabled ? 'transparent' : undefined,
-          caretColor: 'var(--text-main, #1e293b)',
-          fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-          fontSize: '0.8125rem',
-          lineHeight: '1.45',
-          boxSizing: 'border-box',
-          padding: '8px 12px',
-          zIndex: 1,
-        }}
-      />
+        />
+      </div>
 
       {/* Pre-submission Anomaly Warning Strip */}
       {anomalies.length > 0 && (

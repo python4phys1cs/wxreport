@@ -403,4 +403,89 @@ describe('UI & Settings V5 Improvements Suite', () => {
       assert.ok(badResult.error);
     });
   });
+
+  // --------------------------------------------------------------------------
+  // 6. Minimal View Default & Streamlined Settings Menu
+  // --------------------------------------------------------------------------
+  describe('6. Minimal View Default & Streamlined Settings Menu', () => {
+    it('renders Minimal (Default) as the default option and removes view descriptions', () => {
+      const html = renderToStaticMarkup(
+        React.createElement(HamburgerMenu, {
+          isOpen: true,
+          onClose: () => {},
+          activeReport: 'consolidated',
+          onSelectReport: () => {},
+          archiveDateCount: 1,
+          retentionLimit: 15,
+          onRetentionChange: () => {},
+          backupFormat: 'JSON',
+          onBackupFormatChange: () => {},
+          currentTheme: 'theme-blue',
+          onThemeChange: () => {},
+          onDownloadBackup: () => {},
+          onViewModeChange: () => {},
+        })
+      );
+
+      // Verify Minimal (Default) button exists and is active by default
+      assert.ok(html.includes('Minimal (Default)'));
+      assert.ok(html.includes('Standard'));
+      assert.ok(html.includes('aria-checked="true"'));
+      assert.ok(html.includes('class="btn-seg active">Minimal (Default)</button>'));
+
+      // Verify verbose view description text is removed
+      assert.ok(!html.includes('Minimal view: 3 large elements with day/month stepper'));
+      assert.ok(!html.includes('Standard view: Full meteorological workspace with operational reports'));
+    });
+
+    it('groups settings into logical, discoverable categories with clear headers', () => {
+      const html = renderToStaticMarkup(
+        React.createElement(HamburgerMenu, {
+          isOpen: true,
+          onClose: () => {},
+          activeReport: 'consolidated',
+          onSelectReport: () => {},
+          archiveDateCount: 1,
+          retentionLimit: 15,
+          onRetentionChange: () => {},
+          backupFormat: 'JSON',
+          onBackupFormatChange: () => {},
+          currentTheme: 'theme-blue',
+          onThemeChange: () => {},
+          onDownloadBackup: () => {},
+          onViewModeChange: () => {},
+          stationInclusion: getDefaultStationInclusion(),
+          onStationInclusionChange: () => {},
+          onEditModeChange: () => {},
+          onShowHeatWaveCountChange: () => {},
+          onShowColdWaveCountChange: () => {},
+          onAllowHistoricalEditsChange: () => {},
+          onSyntaxHighlightingEnabledChange: () => {},
+        })
+      );
+
+      // Check all 6 category headers exist in order
+      const cat1Idx = html.indexOf('Workspace &amp; Appearance');
+      const cat2Idx = html.indexOf('Report Display &amp; Tables');
+      const cat3Idx = html.indexOf('Data Entry &amp; Validation');
+      const cat4Idx = html.indexOf('Station Registry');
+      const cat5Idx = html.indexOf('Archive &amp; Cloud Database');
+      const cat6Idx = html.indexOf('Danger Zone');
+
+      assert.ok(cat1Idx !== -1, 'Workspace & Appearance header exists');
+      assert.ok(cat2Idx !== -1, 'Report Display & Tables header exists');
+      assert.ok(cat3Idx !== -1, 'Data Entry & Validation header exists');
+      assert.ok(cat4Idx !== -1, 'Station Registry header exists');
+      assert.ok(cat5Idx !== -1, 'Archive & Cloud Database header exists');
+      assert.ok(cat6Idx !== -1, 'Danger Zone header exists');
+
+      // Verify logical order
+      assert.ok(cat1Idx < cat2Idx, 'Cat 1 precedes Cat 2');
+      assert.ok(cat2Idx < cat3Idx, 'Cat 2 precedes Cat 3');
+      assert.ok(cat3Idx < cat4Idx, 'Cat 3 precedes Cat 4');
+      assert.ok(cat4Idx < cat5Idx, 'Cat 4 precedes Cat 5');
+      assert.ok(cat5Idx < cat6Idx, 'Cat 5 precedes Cat 6');
+    });
+  });
 });
+

@@ -15,6 +15,7 @@ import {
 import { validateBulletinHeader } from '../parser/synopDecoder.ts';
 import { getTodayKolkata } from '../utils/timeSlot.ts';
 import { SynopCodeEditor } from './SynopCodeEditor.tsx';
+import type { OverwriteStationItem } from './OverwriteConfirmationModal.tsx';
 
 interface SynopInputProps {
   reportingDate: string;
@@ -33,6 +34,9 @@ interface SynopInputProps {
   syntaxHighlightingEnabled?: boolean;
   validationContext?: ValidationContext;
   isModalMode?: boolean;
+  pendingOverwrites?: OverwriteStationItem[];
+  onConfirmOverwrite?: () => void;
+  onCancelOverwrite?: () => void;
 }
 
 /**
@@ -68,6 +72,9 @@ export const SynopInput = forwardRef<HTMLTextAreaElement, SynopInputProps>(({
   syntaxHighlightingEnabled = true,
   validationContext,
   isModalMode = false,
+  pendingOverwrites = [],
+  onConfirmOverwrite,
+  onCancelOverwrite,
 }, ref) => {
   const is03Z = utcSlot === '03Z';
   const todayKolkata = getTodayKolkata();
@@ -75,11 +82,17 @@ export const SynopInput = forwardRef<HTMLTextAreaElement, SynopInputProps>(({
   const isHistoricalLocked = isHistoricalDate && !allowHistoricalEdits;
 
   const [headerError, setHeaderError] = useState<string | null>(null);
+  const [showOverwriteDiff, setShowOverwriteDiff] = useState<boolean>(false);
 
   // Clear header error when synopText, reportingDate, or utcSlot changes
   useEffect(() => {
     setHeaderError(null);
   }, [synopText, reportingDate, utcSlot]);
+
+  // Reset showOverwriteDiff when pendingOverwrites changes
+  useEffect(() => {
+    setShowOverwriteDiff(false);
+  }, [pendingOverwrites]);
 
   // SYNOP Checker state
   const [isCheckerOpen, setIsCheckerOpen] = useState<boolean>(false);
@@ -126,6 +139,13 @@ export const SynopInput = forwardRef<HTMLTextAreaElement, SynopInputProps>(({
     onClear();
   };
 
+  const handleTextChange = (text: string) => {
+    if (pendingOverwrites && pendingOverwrites.length > 0) {
+      onCancelOverwrite?.();
+    }
+    onSynopTextChange(text);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isHistoricalLocked) {
@@ -138,6 +158,12 @@ export const SynopInput = forwardRef<HTMLTextAreaElement, SynopInputProps>(({
       return;
     }
     setHeaderError(null);
+
+    if (pendingOverwrites && pendingOverwrites.length > 0 && onConfirmOverwrite) {
+      onConfirmOverwrite();
+      return;
+    }
+
     onGenerate();
   };
 
@@ -241,7 +267,7 @@ export const SynopInput = forwardRef<HTMLTextAreaElement, SynopInputProps>(({
           <SynopCodeEditor
             ref={ref}
             value={synopText}
-            onChange={onSynopTextChange}
+            onChange={handleTextChange}
             utcSlot={utcSlot}
             reportingDate={reportingDate}
             validationContext={validationContext}
@@ -492,6 +518,99 @@ export const SynopInput = forwardRef<HTMLTextAreaElement, SynopInputProps>(({
         {(headerError || errorMessage) && (
           <div className="alert-error" role="alert">
             {headerError || errorMessage}
+          </div>
+        )}
+
+        {/* In-place Overwrite Confirmation Alert Card */}
+        {pendingOverwrites && pendingOverwrites.length > 0 && (
+          <div className="overwrite-inline-card" role="alert" aria-live="assertive">
+            <div className="overwrite-inline-header">
+              <div className="overwrite-inline-title">
+                <span className="overwrite-inline-icon">⚠️</span>
+                <strong>Observation Data Already Exists</strong>
+              </div>
+              <span className="overwrite-inline-badge">
+                {pendingOverwrites.length} station{pendingOverwrites.length === 1 ? '' : 's'} affected
+              </span>
+            </div>
+            <p className="overwrite-inline-text">
+              Observations already exist for <strong>{pendingOverwrites.length} station{pendingOverwrites.length === 1 ? '' : 's'}</strong> on <strong>{reportingDate}</strong> ({utcSlot}). Processing will overwrite existing values with this new bulletin.
+            </p>
+
+            <div className="overwrite-inline-diff-toggle-row">
+              <button
+                type="button"
+                className="btn btn-secondary btn-xs"
+                onClick={() => setShowOverwriteDiff((prev) => !prev)}
+              >
+                {showOverwriteDiff ? '▼ Hide Differences' : '▶ Show Differences'} ({pendingOverwrites.length} stations)
+              </button>
+            </div>
+
+            {showOverwriteDiff && (
+              <div className="overwrite-inline-diff-scroll">
+                <table className="overwrite-inline-diff-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: '130px' }}>Station</th>
+                      <th style={{ width: '100px' }}>Parameter</th>
+                      <th className="diff-header-current">Existing</th>
+                      <th className="diff-header-incoming">New Bulletin</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pendingOverwrites.map((item) => (
+                      <React.Fragment key={item.stationId}>
+                        {item.diffs.length > 0 ? (
+                          item.diffs.map((diff, dIdx) => (
+                            <tr key={`${item.stationId}-${diff.field}`}>
+                              {dIdx === 0 && (
+                                <td rowSpan={item.diffs.length} className="diff-station-cell">
+                                  <strong>{item.stationId}</strong>
+                                  <div className="diff-station-name">{item.stationName}</div>
+                                </td>
+                              )}
+                              <td>{diff.label}</td>
+                              <td className="diff-val-current">{diff.currentValue ?? '---'}</td>
+                              <td className="diff-val-incoming">{diff.incomingValue ?? '---'}</td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td className="diff-station-cell">
+                              <strong>{item.stationId}</strong>
+                              <div className="diff-station-name">{item.stationName}</div>
+                            </td>
+                            <td colSpan={3} className="text-muted" style={{ padding: '4px 8px' }}>
+                              (Identical or re-submitted telegram)
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <div className="overwrite-inline-actions">
+              <button
+                type="button"
+                className="btn btn-danger btn-sm"
+                onClick={onConfirmOverwrite}
+                disabled={isGenerating}
+              >
+                {isGenerating ? 'Overwriting...' : '⚠️ Overwrite & Generate'}
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={onCancelOverwrite}
+                disabled={isGenerating}
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         )}
 

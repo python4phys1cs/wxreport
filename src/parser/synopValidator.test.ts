@@ -312,6 +312,7 @@ describe('SYNOP Validator: Central India Plausibility & Syntax Checks', () => {
     const ruleIds = SYNOP_VALIDATION_RULES.map((r) => r.ruleId);
     assert.ok(ruleIds.includes('STR-001'));
     assert.ok(ruleIds.includes('STR-002'));
+    assert.ok(ruleIds.includes('STR-003'));
     assert.ok(ruleIds.includes('RNG-001'));
     assert.ok(ruleIds.includes('CLD-001'));
     assert.ok(ruleIds.includes('WND-001'));
@@ -330,4 +331,68 @@ describe('SYNOP Validator: Central India Plausibility & Syntax Checks', () => {
       SYNOP_VALIDATION_RULES.push({});
     });
   });
+
+  it('23. handles headers with iR=2 (e.g. 22596, 22996) without confusing header with temperature groups', () => {
+    // 42933 (Akola) with header 22596 (iR=2, ix=2, h=5, VV=96) and wind 43202
+    const telegramAkola = '42933 22596 43202 10324 20215 40092 333 10425 20240 555 00000=';
+    const res1 = validateSingleTelegram(telegramAkola, '03Z');
+    assert.equal(
+      res1.issues.some((i) => i.rawGroup === '22596' && i.message.includes('temperature sign digit')),
+      false,
+      "Header group '22596' (iR=2) must not be flagged as an invalid temperature sign digit"
+    );
+
+    // 42931 with header 22996 and wind 63202
+    const telegram2 = '42931 22996 63202 10324 20215 40092 333 10425 20240 555 00000=';
+    const res2 = validateSingleTelegram(telegram2, '03Z');
+    assert.equal(
+      res2.issues.some((i) => i.rawGroup === '22996' && i.message.includes('temperature sign digit')),
+      false,
+      "Header group '22996' (iR=2) must not be flagged as an invalid temperature sign digit"
+    );
+  });
+
+  it('24. enforces STR-003: catches missing "=" terminator between station telegrams and warns the user', () => {
+    // Exact user test case: 43041 (Jagdalpur) is missing its '=' terminator before 42782 (Bilaspur)
+    const userBulletin = `43041 21494 83206 10235 20231 39363 49968 76366 8672/ 333 20230 59053 6034/ 84610 86618 88458 555 00344 11243
+42782 22596 73603 10272 20243 40013 83530 333 20255 59029 6005/ 83620 87360 555 00046 11234=`;
+
+    const report = validateSynopBulletin(userBulletin, '03Z');
+
+    // Both telegrams must be cleanly distinguished instead of being merged into a mangled station
+    assert.equal(report.totalTelegrams, 2, 'Must extract both station telegrams even with missing =');
+
+    const stn43041 = report.stationResults.find((r) => r.stationId === '43041');
+    const stn42782 = report.stationResults.find((r) => r.stationId === '42782');
+
+    assert.ok(stn43041, 'Station 43041 (Jagdalpur) must be identified');
+    assert.ok(stn42782, 'Station 42782 (Bilaspur) must be identified');
+
+    // Station 43041 must have a warning for missing '=' terminator (STR-003)
+    const terminatorWarning = stn43041.issues.find((i) => i.ruleId === 'STR-003');
+    assert.ok(terminatorWarning, "Station 43041 must have STR-003 warning for missing '=' terminator");
+    assert.equal(terminatorWarning.severity, 'warning');
+    assert.equal(terminatorWarning.field, 'terminator');
+    assert.ok(terminatorWarning.message.includes("Missing '=' terminator"));
+
+    // Station 42782 terminated with '=' and should not have STR-003 warning
+    assert.equal(
+      stn42782.issues.some((i) => i.ruleId === 'STR-003'),
+      false,
+      "Station 42782 has '=' and must not be flagged for missing terminator"
+    );
+  });
+
+  it('25. enforces STR-003: catches missing "=" terminator when bulletin ends without "="', () => {
+    // Single station without terminating '='
+    const bulletinWithoutEqual = '42933 32996 01402 10334 20213 40072 333 20297 59002 555 10000';
+    const report = validateSynopBulletin(bulletinWithoutEqual, '03Z');
+
+    assert.equal(report.totalTelegrams, 1);
+    const issue = report.allIssues.find((i) => i.ruleId === 'STR-003');
+    assert.ok(issue, "Must warn for missing '=' terminator at end of bulletin");
+    assert.equal(issue.severity, 'warning');
+    assert.equal(issue.stationId, '42933');
+  });
 });
+

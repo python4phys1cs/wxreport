@@ -527,6 +527,33 @@ describe('SYNOP 03 UTC Decoder Suite', () => {
       assert.equal(parsed.tmin, null);
       assert.equal(parsed.rainfall, null); // iR=2 but no Section 555 -> null
     });
+
+    it('recovers and decodes both stations when "=" terminator is omitted between telegrams', () => {
+      // User's exact test case with missing '=' between 43041 and 42782
+      const userBulletin = `43041 21494 83206 10235 20231 39363 49968 76366 8672/ 333 20230 59053 6034/ 84610 86618 88458 555 00344 11243
+42782 22596 73603 10272 20243 40013 83530 333 20255 59029 6005/ 83620 87360 555 00046 11234=`;
+
+      const parsed = parseSynopBulletin(userBulletin);
+      assert.equal(parsed.length, 2, 'Must decode both stations even when "=" is omitted');
+
+      const stn43041 = parsed.find((p) => p.stationId === '43041')!;
+      const stn42782 = parsed.find((p) => p.stationId === '42782')!;
+
+      assert.ok(stn43041, 'Station 43041 (Jagdalpur) must be parsed');
+      assert.ok(stn42782, 'Station 42782 (Bilaspur) must be parsed');
+
+      // Check values for 43041: dryBulb=23.5, dewPoint=23.1, tmin=23.0, rainfall=34.4
+      assert.equal(stn43041.dryBulb, 23.5);
+      assert.equal(stn43041.dewPoint, 23.1);
+      assert.equal(stn43041.tmin, 23.0);
+      assert.equal(stn43041.rainfall, 34.4);
+
+      // Check values for 42782: dryBulb=27.2, dewPoint=24.3, tmin=25.5, rainfall=4.6
+      assert.equal(stn42782.dryBulb, 27.2);
+      assert.equal(stn42782.dewPoint, 24.3);
+      assert.equal(stn42782.tmin, 25.5);
+      assert.equal(stn42782.rainfall, 4.6);
+    });
   });
 
 });

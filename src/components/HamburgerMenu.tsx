@@ -151,7 +151,7 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
   dbStatus,
   onMigrateToDatabase,
   onOpenAbout,
-  viewMode = 'standard',
+  viewMode = 'minimal',
   onViewModeChange,
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
@@ -284,7 +284,13 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
           <div className="nav-group">
             <div className="nav-group-title">SETTINGS</div>
 
-            {/* View Mode (Standard vs Minimal Input) */}
+            {/* 1. WORKSPACE & APPEARANCE */}
+            <div className="settings-category-header">
+              <span className="settings-category-icon" aria-hidden="true">🖥️</span>
+              <span>Workspace &amp; Appearance</span>
+            </div>
+
+            {/* Operational View Mode (Minimal vs Standard) */}
             {onViewModeChange && (
               <div className="sidebar-setting-block">
                 <div className="setting-subhead">Operational View Mode</div>
@@ -292,31 +298,26 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
                   <button
                     type="button"
                     role="radio"
-                    aria-checked={viewMode === 'standard'}
-                    className={`btn-seg ${viewMode === 'standard' ? 'active' : ''}`}
-                    onClick={() => onViewModeChange('standard')}
-                  >
-                    Standard (Default)
-                  </button>
-                  <button
-                    type="button"
-                    role="radio"
                     aria-checked={viewMode === 'minimal'}
                     className={`btn-seg ${viewMode === 'minimal' ? 'active' : ''}`}
                     onClick={() => onViewModeChange('minimal')}
                   >
-                    Minimal View
+                    Minimal (Default)
                   </button>
-                </div>
-                <div className="setting-help-text">
-                  {viewMode === 'minimal'
-                    ? 'Minimal view: 3 large elements with day/month stepper and 03Z/12Z submission buttons.'
-                    : 'Standard view: Full meteorological workspace with operational reports and data entry.'}
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={viewMode === 'standard'}
+                    className={`btn-seg ${viewMode === 'standard' ? 'active' : ''}`}
+                    onClick={() => onViewModeChange('standard')}
+                  >
+                    Standard
+                  </button>
                 </div>
               </div>
             )}
 
-            {/* 1. Theme (Top of Settings with compact swatches) */}
+            {/* Theme (Compact Swatches) */}
             <div className="sidebar-setting-block theme-setting-block">
               <div className="setting-subhead">Theme</div>
               <div className="sidebar-theme-swatches" role="radiogroup" aria-label="Workstation theme">
@@ -347,71 +348,67 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
               </div>
             </div>
 
-            {/* 2. Archive / Backup Export */}
-            <div className="sidebar-setting-block">
-              <div className="setting-subhead">Archive / Backup Export</div>
-              <div className="setting-status-text">
-                Retained: <strong>{archiveDateCount}</strong> of <strong>{retentionLimit}</strong> days
-              </div>
-              <div className="setting-action-row">
-                <button
-                  type="button"
-                  className="btn btn-primary btn-xs"
-                  onClick={onDownloadBackup}
-                  title="Download operational backup"
-                >
-                  Download ({backupFormat})
-                </button>
-              </div>
-              {archiveNotification && (
-                <div
-                  className={`sidebar-notification ${archiveNotification.type === 'success' ? 'alert-success' : 'alert-error'}`}
-                  role="status"
-                >
-                  {archiveNotification.message}
+            {/* 2. REPORT DISPLAY & TABLES */}
+            <div className="settings-category-header">
+              <span className="settings-category-icon" aria-hidden="true">📊</span>
+              <span>Report Display &amp; Tables</span>
+            </div>
+
+            {/* Show Heatwave Count in Weather Summary */}
+            {onShowHeatWaveCountChange && (
+              <div className="sidebar-setting-block">
+                <div className="setting-subhead">Show Heatwave Count in Weather Summary</div>
+                <div className="sidebar-segmented" role="radiogroup" aria-label="Show Heatwave Count in Weather Summary">
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={showHeatWaveCount}
+                    className={`btn-seg ${showHeatWaveCount ? 'active' : ''}`}
+                    onClick={() => onShowHeatWaveCountChange(true)}
+                  >
+                    Enabled
+                  </button>
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={!showHeatWaveCount}
+                    className={`btn-seg ${!showHeatWaveCount ? 'active' : ''}`}
+                    onClick={() => onShowHeatWaveCountChange(false)}
+                  >
+                    Disabled
+                  </button>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
-            {/* 3. Backup Retention */}
-            <div className="sidebar-setting-block">
-              <div className="setting-subhead">Backup Retention</div>
-              <div className="sidebar-segmented" role="radiogroup" aria-label="Backup retention days">
-                {[15, 30, 60, 120].map((days) => (
+            {/* Show Coldwave Count in Weather Summary */}
+            {onShowColdWaveCountChange && (
+              <div className="sidebar-setting-block">
+                <div className="setting-subhead">Show Coldwave Count in Weather Summary</div>
+                <div className="sidebar-segmented" role="radiogroup" aria-label="Show Coldwave Count in Weather Summary">
                   <button
-                    key={days}
                     type="button"
                     role="radio"
-                    aria-checked={retentionLimit === days}
-                    className={`btn-seg ${retentionLimit === days ? 'active' : ''}`}
-                    onClick={() => onRetentionChange(days)}
+                    aria-checked={showColdWaveCount}
+                    className={`btn-seg ${showColdWaveCount ? 'active' : ''}`}
+                    onClick={() => onShowColdWaveCountChange(true)}
                   >
-                    {days}d
+                    Enabled
                   </button>
-                ))}
-              </div>
-            </div>
-
-            {/* 4. Backup Format */}
-            <div className="sidebar-setting-block">
-              <div className="setting-subhead">Backup Format</div>
-              <div className="sidebar-segmented" role="radiogroup" aria-label="Backup format">
-                {(['JSON', 'CSV'] as BackupFormat[]).map((fmt) => (
                   <button
-                    key={fmt}
                     type="button"
                     role="radio"
-                    aria-checked={backupFormat === fmt}
-                    className={`btn-seg ${backupFormat === fmt ? 'active' : ''}`}
-                    onClick={() => onBackupFormatChange(fmt)}
+                    aria-checked={!showColdWaveCount}
+                    className={`btn-seg ${!showColdWaveCount ? 'active' : ''}`}
+                    onClick={() => onShowColdWaveCountChange(false)}
                   >
-                    {fmt}
+                    Disabled
                   </button>
-                ))}
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* 5. Table Edit Mode */}
+            {/* Table Edit Mode */}
             {onEditModeChange && (
               <div className="sidebar-setting-block">
                 <div className="setting-subhead">Table Edit Mode</div>
@@ -437,72 +434,46 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
                 </div>
                 <div className="setting-help-text">
                   {isEditMode
-                    ? 'In-table editing enabled for observation values. Recalculates statistics in real time.'
+                    ? 'In-table editing enabled for observation values with real-time recalculation.'
                     : 'Report tables remain read-only operational presentation.'}
                 </div>
               </div>
             )}
 
-            {/* 6. Show Heatwave Count in Weather Summary */}
-            {onShowHeatWaveCountChange && (
-              <div className="sidebar-setting-block">
-                <div className="setting-subhead">Show Heatwave Count in Weather Summary</div>
-                <div className="sidebar-segmented" role="radiogroup" aria-label="Show Heatwave Count in Weather Summary">
-                  <button
-                    type="button"
-                    role="radio"
-                    aria-checked={showHeatWaveCount}
-                    className={`btn-seg ${showHeatWaveCount ? 'active' : ''}`}
-                    onClick={() => onShowHeatWaveCountChange(true)}
-                  >
-                    Enabled
-                  </button>
-                  <button
-                    type="button"
-                    role="radio"
-                    aria-checked={!showHeatWaveCount}
-                    className={`btn-seg ${!showHeatWaveCount ? 'active' : ''}`}
-                    onClick={() => onShowHeatWaveCountChange(false)}
-                  >
-                    Disabled
-                  </button>
-                </div>
-                <div className="setting-help-text">
-                  {showHeatWaveCount
-                    ? 'Heat wave station counts are displayed in the Weather Summary report.'
-                    : 'Heat wave column is removed from the Weather Summary presentation.'}
-                </div>
-              </div>
-            )}
+            {/* 3. DATA ENTRY & VALIDATION */}
+            <div className="settings-category-header">
+              <span className="settings-category-icon" aria-hidden="true">✍️</span>
+              <span>Data Entry &amp; Validation</span>
+            </div>
 
-            {/* 7. Show Coldwave Count in Weather Summary */}
-            {onShowColdWaveCountChange && (
+            {/* SYNOP Syntax & Anomaly Highlighting */}
+            {onSyntaxHighlightingEnabledChange && (
               <div className="sidebar-setting-block">
-                <div className="setting-subhead">Show Coldwave Count in Weather Summary</div>
-                <div className="sidebar-segmented" role="radiogroup" aria-label="Show Coldwave Count in Weather Summary">
+                <div className="setting-subhead">SYNOP Syntax &amp; Anomaly Highlighting</div>
+                <div className="sidebar-segmented" role="radiogroup" aria-label="SYNOP Syntax & Anomaly Highlighting">
                   <button
                     type="button"
                     role="radio"
-                    aria-checked={showColdWaveCount}
-                    className={`btn-seg ${showColdWaveCount ? 'active' : ''}`}
-                    onClick={() => onShowColdWaveCountChange(true)}
+                    aria-checked={syntaxHighlightingEnabled}
+                    className={`btn-seg ${syntaxHighlightingEnabled ? 'active' : ''}`}
+                    onClick={() => onSyntaxHighlightingEnabledChange(true)}
                   >
                     Enabled
                   </button>
                   <button
                     type="button"
                     role="radio"
-                    aria-checked={!showColdWaveCount}
-                    className={`btn-seg ${!showColdWaveCount ? 'active' : ''}`}
-                    onClick={() => onShowColdWaveCountChange(false)}
+                    aria-checked={!syntaxHighlightingEnabled}
+                    className={`btn-seg ${!syntaxHighlightingEnabled ? 'active' : ''}`}
+                    onClick={() => onSyntaxHighlightingEnabledChange(false)}
                   >
                     Disabled
                   </button>
                 </div>
                 <div className="setting-help-text">
-                  {showColdWaveCount
-                    ? 'Cold wave station counts are displayed in the Weather Summary report.'
-                    : 'Cold wave column is removed from the Weather Summary presentation.'}
+                  {syntaxHighlightingEnabled
+                    ? 'Color-codes SYNOP groups and flags abnormal temperatures and rainfall.'
+                    : 'Standard plain text editor.'}
                 </div>
               </div>
             )}
@@ -533,175 +504,220 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
                 </div>
                 <div className="setting-help-text">
                   {allowHistoricalEdits
-                    ? 'Enabled: Forecasters can enter and update observations for past dates.'
-                    : 'Disabled (Default): Entering or modifying observations for past dates is locked.'}
+                    ? 'Forecasters can enter and update observations for past dates.'
+                    : 'Modifying observations for past dates is locked.'}
                 </div>
               </div>
             )}
 
-            {/* SYNOP Syntax & Anomaly Highlighting */}
-            {onSyntaxHighlightingEnabledChange && (
-              <div className="sidebar-setting-block">
-                <div className="setting-subhead">SYNOP Syntax & Anomaly Highlighting</div>
-                <div className="sidebar-segmented" role="radiogroup" aria-label="SYNOP Syntax & Anomaly Highlighting">
-                  <button
-                    type="button"
-                    role="radio"
-                    aria-checked={syntaxHighlightingEnabled}
-                    className={`btn-seg ${syntaxHighlightingEnabled ? 'active' : ''}`}
-                    onClick={() => onSyntaxHighlightingEnabledChange(true)}
-                  >
-                    Enabled
-                  </button>
-                  <button
-                    type="button"
-                    role="radio"
-                    aria-checked={!syntaxHighlightingEnabled}
-                    className={`btn-seg ${!syntaxHighlightingEnabled ? 'active' : ''}`}
-                    onClick={() => onSyntaxHighlightingEnabledChange(false)}
-                  >
-                    Disabled
-                  </button>
-                </div>
-                <div className="setting-help-text">
-                  {syntaxHighlightingEnabled
-                    ? 'Enabled (Default): Color-codes SYNOP groups and flags abnormal temperatures, RH > 100%, and heavy rainfall.'
-                    : 'Disabled: Standard plain text editor.'}
-                </div>
-              </div>
-            )}
-
-            {/* 8. Station Report Inclusion (Locked & Collapsed by default) */}
+            {/* 4. STATION REGISTRY */}
             {stationInclusion && onStationInclusionChange && (
-              <div className="sidebar-setting-block station-inclusion-block">
-                <div className="station-inclusion-header-row">
-                  <div className="setting-subhead">Station Report Inclusion</div>
-                  <div className="station-inclusion-lock-badge">
-                    {isStationInclusionUnlocked ? (
-                      <span className="badge-unlocked" title="Controls are unlocked for editing">
-                        🔓 Unlocked
-                      </span>
-                    ) : (
-                      <span className="badge-locked" title="Controls are locked to prevent accidental changes">
-                        🔒 Locked
+              <>
+                <div className="settings-category-header">
+                  <span className="settings-category-icon" aria-hidden="true">📍</span>
+                  <span>Station Registry</span>
+                </div>
+
+                <div className="sidebar-setting-block station-inclusion-block">
+                  <div className="station-inclusion-header-row">
+                    <div className="setting-subhead">Station Report Inclusion</div>
+                    <div className="station-inclusion-lock-badge">
+                      {isStationInclusionUnlocked ? (
+                        <span className="badge-unlocked" title="Controls are unlocked for editing">
+                          🔓 Unlocked
+                        </span>
+                      ) : (
+                        <span className="badge-locked" title="Controls are locked to prevent accidental changes">
+                          🔒 Locked
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="station-inclusion-summary">
+                    {CANONICAL_STATIONS.filter((s) => stationInclusion[s.id] !== false).length} included &bull;{' '}
+                    {CANONICAL_STATIONS.filter((s) => stationInclusion[s.id] === false).length} excluded
+                    {stationInclusion['42665'] === false && (
+                      <span style={{ display: 'block', fontSize: '0.625rem', color: 'var(--text-muted)' }}>
+                        (Ashoknagar 42665 excluded by default)
                       </span>
                     )}
                   </div>
-                </div>
 
-                <div className="station-inclusion-summary">
-                  {CANONICAL_STATIONS.filter((s) => stationInclusion[s.id] !== false).length} included &bull;{' '}
-                  {CANONICAL_STATIONS.filter((s) => stationInclusion[s.id] === false).length} excluded
-                  {stationInclusion['42665'] === false && (
-                    <span style={{ display: 'block', fontSize: '0.625rem', color: 'var(--text-muted)' }}>
-                      (Ashoknagar 42665 excluded by default)
-                    </span>
-                  )}
-                </div>
+                  <div className="station-inclusion-actions">
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-xs"
+                      onClick={() => setIsStationInclusionExpanded((prev) => !prev)}
+                      title={isStationInclusionExpanded ? 'Collapse station list' : 'Expand station list'}
+                    >
+                      {isStationInclusionExpanded ? 'Collapse List ▲' : 'Expand List ▼'}
+                    </button>
+                    <button
+                      type="button"
+                      className={`btn btn-xs ${isStationInclusionUnlocked ? 'btn-secondary' : 'btn-primary'}`}
+                      onClick={() => setIsStationInclusionUnlocked((prev) => !prev)}
+                      title={isStationInclusionUnlocked ? 'Lock controls to prevent changes' : 'Unlock station toggles for editing'}
+                    >
+                      {isStationInclusionUnlocked ? 'Lock Controls 🔒' : 'Unlock Toggles 🔓'}
+                    </button>
+                  </div>
 
-                <div className="station-inclusion-actions">
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-xs"
-                    onClick={() => setIsStationInclusionExpanded((prev) => !prev)}
-                    title={isStationInclusionExpanded ? 'Collapse station list' : 'Expand station list'}
-                  >
-                    {isStationInclusionExpanded ? 'Collapse List ▲' : 'Expand List ▼'}
-                  </button>
-                  <button
-                    type="button"
-                    className={`btn btn-xs ${isStationInclusionUnlocked ? 'btn-secondary' : 'btn-primary'}`}
-                    onClick={() => setIsStationInclusionUnlocked((prev) => !prev)}
-                    title={isStationInclusionUnlocked ? 'Lock controls to prevent changes' : 'Unlock station toggles for editing'}
-                  >
-                    {isStationInclusionUnlocked ? 'Lock Controls 🔒' : 'Unlock Toggles 🔓'}
-                  </button>
-                </div>
+                  {isStationInclusionExpanded && (
+                    <>
+                      {!isStationInclusionUnlocked && (
+                        <div className="station-lock-notice" role="note">
+                          Station controls are locked to prevent accidental report alterations. Click <strong>Unlock Toggles</strong> to edit station inclusion.
+                        </div>
+                      )}
 
-                {isStationInclusionExpanded && (
-                  <>
-                    {!isStationInclusionUnlocked && (
-                      <div className="station-lock-notice" role="note">
-                        Station controls are locked to prevent accidental report alterations. Click <strong>Unlock Toggles</strong> to edit station inclusion.
-                      </div>
-                    )}
-
-                    <div className="station-inclusion-actions" style={{ marginTop: '0.125rem' }}>
-                      {onResetStationInclusion && (
+                      <div className="station-inclusion-actions" style={{ marginTop: '0.125rem' }}>
+                        {onResetStationInclusion && (
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-xs"
+                            disabled={!isStationInclusionUnlocked}
+                            onClick={onResetStationInclusion}
+                            title="Reset station inclusion to standard defaults (Ashoknagar 42665 excluded)"
+                          >
+                            Reset Defaults
+                          </button>
+                        )}
                         <button
                           type="button"
                           className="btn btn-secondary btn-xs"
                           disabled={!isStationInclusionUnlocked}
-                          onClick={onResetStationInclusion}
-                          title="Reset station inclusion to standard defaults (Ashoknagar 42665 excluded)"
-                        >
-                          Reset Defaults
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-xs"
-                        disabled={!isStationInclusionUnlocked}
-                        onClick={() => {
-                          for (const stn of CANONICAL_STATIONS) {
-                            if (stationInclusion[stn.id] === false) {
-                              onStationInclusionChange(stn.id, true);
+                          onClick={() => {
+                            for (const stn of CANONICAL_STATIONS) {
+                              if (stationInclusion[stn.id] === false) {
+                                onStationInclusionChange(stn.id, true);
+                              }
                             }
-                          }
-                        }}
-                        title="Include all stations in reports"
-                      >
-                        Select All
-                      </button>
-                    </div>
+                          }}
+                          title="Include all stations in reports"
+                        >
+                          Select All
+                        </button>
+                      </div>
 
-                    <input
-                      type="text"
-                      className="station-inclusion-search"
-                      placeholder="Filter stations by name or code..."
-                      value={stationSearch}
-                      onChange={(e) => setStationSearch(e.target.value)}
-                      aria-label="Filter stations"
-                    />
+                      <input
+                        type="text"
+                        className="station-inclusion-search"
+                        placeholder="Filter stations by name or code..."
+                        value={stationSearch}
+                        onChange={(e) => setStationSearch(e.target.value)}
+                        aria-label="Filter stations"
+                      />
 
-                    <div className="station-inclusion-list" role="group" aria-label="Station list">
-                      {CANONICAL_STATIONS.filter((stn) => {
-                        if (!stationSearch.trim()) return true;
-                        const q = stationSearch.toLowerCase().trim();
-                        return (
-                          stn.id.includes(q) ||
-                          stn.name.toLowerCase().includes(q) ||
-                          (getSubdivision(stn.subdivisionId)?.name || '').toLowerCase().includes(q)
-                        );
-                      }).map((stn) => {
-                        const isIncluded = stationInclusion[stn.id] !== false;
-                        return (
-                          <label
-                            key={stn.id}
-                            className={`station-inclusion-item ${isIncluded ? 'enabled' : 'disabled'} ${!isStationInclusionUnlocked ? 'locked' : ''}`}
-                          >
-                            <input
-                              type="checkbox"
-                              disabled={!isStationInclusionUnlocked}
-                              checked={isIncluded}
-                              onChange={(e) => onStationInclusionChange(stn.id, e.target.checked)}
-                              aria-label={`Include ${stn.name} (${stn.id})`}
-                            />
-                            <span className="stn-id-badge">{stn.id}</span>
-                            <span className="stn-name-label">{stn.name}</span>
-                            <span className="stn-sub-label">
-                              {getSubdivision(stn.subdivisionId)?.name.replace(/^(WEST|EAST)\s+/, '')}
-                            </span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </>
-                )}
-              </div>
+                      <div className="station-inclusion-list" role="group" aria-label="Station list">
+                        {CANONICAL_STATIONS.filter((stn) => {
+                          if (!stationSearch.trim()) return true;
+                          const q = stationSearch.toLowerCase().trim();
+                          return (
+                            stn.id.includes(q) ||
+                            stn.name.toLowerCase().includes(q) ||
+                            (getSubdivision(stn.subdivisionId)?.name || '').toLowerCase().includes(q)
+                          );
+                        }).map((stn) => {
+                          const isIncluded = stationInclusion[stn.id] !== false;
+                          return (
+                            <label
+                              key={stn.id}
+                              className={`station-inclusion-item ${isIncluded ? 'enabled' : 'disabled'} ${!isStationInclusionUnlocked ? 'locked' : ''}`}
+                            >
+                              <input
+                                type="checkbox"
+                                disabled={!isStationInclusionUnlocked}
+                                checked={isIncluded}
+                                onChange={(e) => onStationInclusionChange(stn.id, e.target.checked)}
+                                aria-label={`Include ${stn.name} (${stn.id})`}
+                              />
+                              <span className="stn-id-badge">{stn.id}</span>
+                              <span className="stn-name-label">{stn.name}</span>
+                              <span className="stn-sub-label">
+                                {getSubdivision(stn.subdivisionId)?.name.replace(/^(WEST|EAST)\s+/, '')}
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </>
             )}
 
-            {/* 9. Data Management */}
+            {/* 5. ARCHIVE, BACKUP & DATABASE */}
+            <div className="settings-category-header">
+              <span className="settings-category-icon" aria-hidden="true">💾</span>
+              <span>Archive &amp; Cloud Database</span>
+            </div>
+
+            {/* Archive / Backup Export */}
+            <div className="sidebar-setting-block">
+              <div className="setting-subhead">Archive / Backup Export</div>
+              <div className="setting-status-text">
+                Retained: <strong>{archiveDateCount}</strong> of <strong>{retentionLimit}</strong> days
+              </div>
+              <div className="setting-action-row">
+                <button
+                  type="button"
+                  className="btn btn-primary btn-xs"
+                  onClick={onDownloadBackup}
+                  title="Download operational backup"
+                >
+                  Download ({backupFormat})
+                </button>
+              </div>
+              {archiveNotification && (
+                <div
+                  className={`sidebar-notification ${archiveNotification.type === 'success' ? 'alert-success' : 'alert-error'}`}
+                  role="status"
+                >
+                  {archiveNotification.message}
+                </div>
+              )}
+            </div>
+
+            {/* Backup Retention */}
+            <div className="sidebar-setting-block">
+              <div className="setting-subhead">Backup Retention</div>
+              <div className="sidebar-segmented" role="radiogroup" aria-label="Backup retention days">
+                {[15, 30, 60, 120].map((days) => (
+                  <button
+                    key={days}
+                    type="button"
+                    role="radio"
+                    aria-checked={retentionLimit === days}
+                    className={`btn-seg ${retentionLimit === days ? 'active' : ''}`}
+                    onClick={() => onRetentionChange(days)}
+                  >
+                    {days}d
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Backup Format */}
+            <div className="sidebar-setting-block">
+              <div className="setting-subhead">Backup Format</div>
+              <div className="sidebar-segmented" role="radiogroup" aria-label="Backup format">
+                {(['JSON', 'CSV'] as BackupFormat[]).map((fmt) => (
+                  <button
+                    key={fmt}
+                    type="button"
+                    role="radio"
+                    aria-checked={backupFormat === fmt}
+                    className={`btn-seg ${backupFormat === fmt ? 'active' : ''}`}
+                    onClick={() => onBackupFormatChange(fmt)}
+                  >
+                    {fmt}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Data Management & Import/Restore */}
             <div className="sidebar-setting-block data-management-block">
               <div className="setting-subhead">Data Management</div>
               <div className="setting-status-text">
@@ -858,8 +874,16 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
                   </div>
                 )}
               </div>
+            </div>
 
-              {/* Destructive Data Clear Section (Kept strictly separated at bottom) */}
+            {/* 6. DANGER ZONE */}
+            <div className="settings-category-header danger-category">
+              <span className="settings-category-icon" aria-hidden="true">⚠️</span>
+              <span>Danger Zone</span>
+            </div>
+
+            {/* Destructive Data Clear Section (Kept strictly separated at bottom) */}
+            <div className="sidebar-setting-block danger-setting-block">
               <div className="sidebar-destructive-section">
                 {!isDeleting ? (
                   <button

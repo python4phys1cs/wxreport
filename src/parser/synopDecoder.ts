@@ -384,6 +384,102 @@ export function parseSingleTelegram(
 }
 
 /**
+ * Extracted telegram segment with termination metadata.
+ */
+export interface ExtractedTelegramSegment {
+  readonly rawText: string;
+  readonly stationId: string;
+  readonly hasTerminator: boolean;
+  readonly lastGroup?: string;
+}
+
+/**
+ * Checks if a token at index k within tokens array represents the start of a new station telegram.
+ */
+function isNewStationTelegramStart(tokens: string[], k: number, currentStart: number): boolean {
+  // A standard SYNOP telegram requires at least 6 groups (station, header, wind, dryBulb, dewPoint, pressure)
+  if (k - currentStart < 6) return false;
+  const token = tokens[k];
+  if (!/^\d{5}$/.test(token)) return false;
+
+  // Station identifiers in Region II / India (Block 42, 43, 41) or in the regional station registry
+  const isCandidateStation = Boolean(getStation(token)) || /^(42|43|41)\d{3}$/.test(token);
+  if (!isCandidateStation) return false;
+
+  // Must be followed by SYNOP header group i_R i_x h VV (first digit 1-4) and wind group Nddff
+  if (k + 2 < tokens.length) {
+    const headerGrp = tokens[k + 1];
+    const windGrp = tokens[k + 2];
+    if (/^[1-4][/0-9]{4}$/.test(headerGrp) && /^[/0-9]{5}$/.test(windGrp)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Splits a raw SYNOP bulletin into individual station telegram segments.
+ * Handles both standard '=' delimited telegrams and un-terminated telegrams where
+ * '=' was omitted between stations or at the end of the bulletin.
+ */
+export function splitBulletinIntoTelegrams(rawBulletin: string): ExtractedTelegramSegment[] {
+  if (!rawBulletin || typeof rawBulletin !== 'string' || !rawBulletin.trim()) {
+    return [];
+  }
+
+  const normalized = rawBulletin.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  const rawSegments = normalized.split('=');
+  const results: ExtractedTelegramSegment[] = [];
+
+  for (let sIdx = 0; sIdx < rawSegments.length; sIdx++) {
+    let segment = rawSegments[sIdx].trim();
+    if (!segment) continue;
+
+    const segmentHadTerminator = sIdx < rawSegments.length - 1;
+
+    // Strip optional bulletin header like "AAXX 01034" or "AAXX 01124 AMD"
+    segment = segment.replace(/^AAXX\s+\d+(?:\s+(?:COR|AMD))?\s*/i, '').trim();
+    if (!segment || segment.length < 5) continue;
+
+    const tokens = segment.split(/\s+/).filter(Boolean);
+    if (tokens.length === 0) continue;
+
+    let currentStart = 0;
+    for (let k = 1; k < tokens.length; k++) {
+      if (isNewStationTelegramStart(tokens, k, currentStart)) {
+        const sliceTokens = tokens.slice(currentStart, k);
+        const stnId = parseStationId(sliceTokens) ?? sliceTokens[0];
+        const lastGrp = sliceTokens[sliceTokens.length - 1]?.replace(/=+$/, '');
+        results.push({
+          rawText: sliceTokens.join(' '),
+          stationId: stnId,
+          hasTerminator: false,
+          lastGroup: lastGrp,
+        });
+        currentStart = k;
+      }
+    }
+
+    const finalTokens = tokens.slice(currentStart);
+    if (finalTokens.length > 0) {
+      const stnId = parseStationId(finalTokens) ?? finalTokens[0];
+      const lastToken = finalTokens[finalTokens.length - 1];
+      const tokenHasTerminator = lastToken.endsWith('=');
+      const cleanLastToken = lastToken.replace(/=+$/, '');
+      results.push({
+        rawText: finalTokens.map((t) => t.replace(/=+$/, '')).join(' '),
+        stationId: stnId,
+        hasTerminator: segmentHadTerminator || tokenHasTerminator,
+        lastGroup: cleanLastToken,
+      });
+    }
+  }
+
+  return results;
+}
+
+/**
  * Primary pure function:
  * Splits a full 03 UTC SYNOP bulletin into individual station telegrams and decodes each.
  * Supports multiple telegrams terminated with '=', headers like AAXX, and line wraps.
@@ -397,30 +493,13 @@ export function parseSynopBulletin(
     return [];
   }
 
-  // Normalize line endings and extra spaces
-  const normalized = rawBulletin.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-
-  // Split on '=' telegram delimiter
-  let segments = normalized.split('=');
-
-  // If no '=' in entire text, treat whole string as one segment
-  if (segments.length === 1 && !rawBulletin.includes('=')) {
-    segments = [rawBulletin];
-  }
-
+  const extracted = splitBulletinIntoTelegrams(rawBulletin);
   const results: ParsedStationObservation[] = [];
 
-  for (let segment of segments) {
-    segment = segment.trim();
-    if (!segment) continue;
+  for (const item of extracted) {
+    if (item.rawText.length < 15) continue;
 
-    // Strip bulletin header like "AAXX 01034" or "AAXX 01034 COR" if present before first station
-    segment = segment.replace(/^AAXX\s+\d+(?:\s+(?:COR|AMD))?\s*/i, '');
-
-    // Skip non-station noise
-    if (segment.length < 15) continue;
-
-    const parsed = parseSingleTelegram(segment, options);
+    const parsed = parseSingleTelegram(item.rawText, options);
     if (parsed) {
       results.push(parsed);
     }
@@ -438,27 +517,18 @@ export function parseSynopBulletinDetailed(rawBulletin: string): SynopBulletinPa
     return { observations: [], unrecognizedStationIds: [], malformedCount: 0 };
   }
 
-  const normalized = rawBulletin.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-  let segments = normalized.split('=');
-  if (segments.length === 1 && !rawBulletin.includes('=')) {
-    segments = [rawBulletin];
-  }
-
+  const extracted = splitBulletinIntoTelegrams(rawBulletin);
   const observations: ParsedStationObservation[] = [];
   const unrecognizedStationIds: string[] = [];
   let malformedCount = 0;
 
-  for (let segment of segments) {
-    segment = segment.trim();
-    if (!segment) continue;
-
-    segment = segment.replace(/^AAXX\s+\d+(?:\s+(?:COR|AMD))?\s*/i, '');
-    if (segment.length < 15) {
+  for (const item of extracted) {
+    if (item.rawText.length < 15) {
       malformedCount++;
       continue;
     }
 
-    const tokens = segment.split(/\s+/).filter(Boolean);
+    const tokens = item.rawText.split(/\s+/).filter(Boolean);
     const rawId = parseStationId(tokens);
 
     if (!rawId) {
@@ -473,7 +543,7 @@ export function parseSynopBulletinDetailed(rawBulletin: string): SynopBulletinPa
       continue;
     }
 
-    const parsed = parseSingleTelegram(segment);
+    const parsed = parseSingleTelegram(item.rawText);
     if (parsed) {
       observations.push(parsed);
     } else {
@@ -542,22 +612,13 @@ export function parse12UtcBulletin(
     return [];
   }
 
-  const normalized = rawBulletin.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-  let segments = normalized.split('=');
-  if (segments.length === 1 && !rawBulletin.includes('=')) {
-    segments = [rawBulletin];
-  }
-
+  const extracted = splitBulletinIntoTelegrams(rawBulletin);
   const results: Parsed12UtcStationObservation[] = [];
-  for (let segment of segments) {
-    segment = segment.trim();
-    if (!segment) continue;
 
-    // Strip header like "AAXX 01124" or "AAXX 01124 AMD"
-    segment = segment.replace(/^AAXX\s+\d+(?:\s+(?:COR|AMD))?\s*/i, '');
-    if (segment.length < 15) continue;
+  for (const item of extracted) {
+    if (item.rawText.length < 15) continue;
 
-    const parsed = parse12UtcSingleTelegram(segment, options);
+    const parsed = parse12UtcSingleTelegram(item.rawText, options);
     if (parsed) {
       results.push(parsed);
     }
@@ -579,27 +640,18 @@ export function parse12UtcBulletinDetailed(rawBulletin: string): Synop12UtcBulle
     return { observations: [], unrecognizedStationIds: [], malformedCount: 0 };
   }
 
-  const normalized = rawBulletin.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-  let segments = normalized.split('=');
-  if (segments.length === 1 && !rawBulletin.includes('=')) {
-    segments = [rawBulletin];
-  }
-
+  const extracted = splitBulletinIntoTelegrams(rawBulletin);
   const observations: Parsed12UtcStationObservation[] = [];
   const unrecognizedStationIds: string[] = [];
   let malformedCount = 0;
 
-  for (let segment of segments) {
-    segment = segment.trim();
-    if (!segment) continue;
-
-    segment = segment.replace(/^AAXX\s+\d+(?:\s+(?:COR|AMD))?\s*/i, '');
-    if (segment.length < 15) {
+  for (const item of extracted) {
+    if (item.rawText.length < 15) {
       malformedCount++;
       continue;
     }
 
-    const tokens = segment.split(/\s+/).filter(Boolean);
+    const tokens = item.rawText.split(/\s+/).filter(Boolean);
     const rawId = parseStationId(tokens);
 
     if (!rawId) {
@@ -614,7 +666,7 @@ export function parse12UtcBulletinDetailed(rawBulletin: string): Synop12UtcBulle
       continue;
     }
 
-    const parsed = parse12UtcSingleTelegram(segment);
+    const parsed = parse12UtcSingleTelegram(item.rawText);
     if (parsed) {
       observations.push(parsed);
     } else {

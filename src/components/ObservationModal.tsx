@@ -7,6 +7,7 @@ import React, { useEffect, useRef } from 'react';
 import type { UtcSlot } from '../engine/observationStore.ts';
 import { SynopInput } from './SynopInput.tsx';
 import type { ValidationContext } from '../parser/synopValidator.ts';
+import type { OverwriteStationItem } from './OverwriteConfirmationModal.tsx';
 
 interface ObservationModalProps {
   isOpen: boolean;
@@ -24,6 +25,9 @@ interface ObservationModalProps {
   syntaxHighlightingEnabled?: boolean;
   validationContext?: ValidationContext;
   slotStatusLabel?: string;
+  pendingOverwrites?: OverwriteStationItem[];
+  onConfirmOverwrite?: () => void;
+  onCancelOverwrite?: () => void;
 }
 
 export const ObservationModal: React.FC<ObservationModalProps> = ({
@@ -42,6 +46,9 @@ export const ObservationModal: React.FC<ObservationModalProps> = ({
   syntaxHighlightingEnabled = true,
   validationContext,
   slotStatusLabel,
+  pendingOverwrites = [],
+  onConfirmOverwrite,
+  onCancelOverwrite,
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -128,6 +135,9 @@ export const ObservationModal: React.FC<ObservationModalProps> = ({
             syntaxHighlightingEnabled={syntaxHighlightingEnabled}
             validationContext={validationContext}
             isModalMode={true}
+            pendingOverwrites={pendingOverwrites}
+            onConfirmOverwrite={onConfirmOverwrite}
+            onCancelOverwrite={onCancelOverwrite}
           />
         </div>
       </div>
