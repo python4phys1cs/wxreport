@@ -155,9 +155,11 @@ describe('Operational Observation Store & Ingestion Suite', () => {
       assert.equal(stn.tminDate, '2026-01-06');
       assert.equal(stn.rh0830, 64);
       assert.equal(stn.rainfall, 1.2);
-      assert.equal(stn.rainfall0830, 1.2);
-      // 12Z fields remain unpopulated for Day 2 until 12Z arrives (never stale from Day 1):
-      assert.equal(stn.tmax, null);
+      // Previous day evening Tmax (41.2 from 2026-01-05 12Z) is carried forward for Day 2 03Z morning reporting:
+      assert.equal(stn.tmax, 41.2);
+      assert.equal(stn.tmaxDate, '2026-01-05');
+      assert.equal(stn.tmaxSlot, '03Z');
+      // RH 1730 is unpopulated for Day 2 until 12Z arrives (never carried over from Day 1):
       assert.equal(stn.rh1730, null);
       // Day 1 records remain intact and preserved in archive:
       const day1Obs = store.getStationObservation('42933', '2026-01-05');
@@ -341,8 +343,8 @@ describe('Operational Observation Store & Ingestion Suite', () => {
       // Current morning parameters:
       assert.equal(akola03Z.tmin, 20.4);
       assert.equal(akola03Z.rh0830, 68);
-      // Day 2 Tmax is unavailable on 03Z before 12Z arrives:
-      assert.equal(akola03Z.tmax, null);
+      // Previous day evening Tmax (from 2026-01-05 12Z: 41.2) is carried forward to Day 2 03Z report:
+      assert.equal(akola03Z.tmax, 41.2);
       // RH 1730 is unavailable on 03Z (never substitutes previous day's evening RH):
       assert.equal(akola03Z.rh1730, null);
 
@@ -499,9 +501,10 @@ describe('Operational Observation Store & Ingestion Suite', () => {
 
       const day2 = store2.getStationObservation('42933', '2026-01-06');
       assert.ok(day2);
-      // Day 2 has only ingested 03Z (without Section 333 10xxx) and no 12Z observation;
-      // Per Rule 3, current-cycle unavailable values are never filled with stale values from previous dates.
-      assert.equal(day2.tmax, null);
+      // Day 2 carries forward Day 1's evening Tmax (41.5) for the 03Z morning reporting cycle
+      assert.equal(day2.tmax, 41.5);
+      assert.equal(day2.tmaxDate, '2026-01-05');
+      assert.equal(day2.tmaxSlot, '03Z');
     });
   });
 
@@ -793,4 +796,137 @@ describe('Operational Observation Store & Ingestion Suite', () => {
       assert.equal(amravatiAfter?.tmax, 37.8); // Amravati untouched
     });
   });
+
+  describe('Operational 12Z evening Max Temp carry-forward to next day 03Z report', () => {
+    it('carries forward 24 Oct 12Z Max Temp to 25 Oct 03Z report even before 25 Oct bulletin is entered', () => {
+      const store = new InMemoryObservationStore();
+
+      // User enters 24 Oct 12Z bulletin with Akola (42933) Tmax 33.5 and Nagpur (42867) Tmax 34.2
+      const synop24Oct12Z = `AAXX 24124
+42933 32996 02502 10325 20195 40120 333 10335 58005 555 10000=
+42867 32996 02502 10330 20190 40125 333 10342 58004 555 10000=`;
+
+      store.ingestBulletin('12Z', synop24Oct12Z, '2026-10-24');
+
+      // Now user views or generates 25 Oct 03Z report (no 25 Oct bulletin entered yet)
+      const res03Z = generateDailyReports(
+        '',
+        '2026-10-25',
+        defaultPentadNormalProvider,
+        undefined,
+        {
+          utcSlot: '03Z',
+          observationStore: store,
+        }
+      );
+
+      const vidarbha = res03Z.subdivisions.find((s) => s.subdivision.id === '26');
+      assert.ok(vidarbha);
+
+      const akola = vidarbha.report1Rows.find((r) => r.stationId === '42933');
+      assert.ok(akola);
+      assert.equal(akola.tmax, 33.5, '24 Oct 12Z Tmax (33.5) must carry forward to 25 Oct 03Z report for Akola');
+      assert.ok(akola.tmaxDeparture !== null, 'Tmax departure must be calculated against pentad');
+
+      const nagpur = vidarbha.report1Rows.find((r) => r.stationId === '42867');
+      assert.ok(nagpur);
+      assert.equal(nagpur.tmax, 34.2, '24 Oct 12Z Tmax (34.2) must carry forward to 25 Oct 03Z report for Nagpur');
+
+      // RH1730 must NOT be carried forward to 03Z report
+      assert.equal(akola.rh1730, null);
+      assert.equal(nagpur.rh1730, null);
+    });
+
+    it('carries forward 24 Oct 12Z Max Temp when 25 Oct 03Z bulletin omits Section 333 Group 1', () => {
+      const store = new InMemoryObservationStore();
+
+      // 1. Ingest 24 Oct 12Z
+      const synop24Oct12Z = `AAXX 24124
+42933 32996 02502 10325 20195 40120 333 10358 58005 555 10000=`;
+      store.ingestBulletin('12Z', synop24Oct12Z, '2026-10-24');
+
+      // 2. Ingest 25 Oct 03Z telegram with Tmin 21.0, but omitting Section 333 Group 1 (only 20210 for Tmin)
+      const synop25Oct03Z = `AAXX 25034
+42933 32996 00000 10250 20185 40150 333 20210 58010 555 10000=`;
+      const res03Z = generateDailyReports(
+        synop25Oct03Z,
+        '2026-10-25',
+        defaultPentadNormalProvider,
+        undefined,
+        {
+          utcSlot: '03Z',
+          observationStore: store,
+        }
+      );
+
+      const vidarbha = res03Z.subdivisions.find((s) => s.subdivision.id === '26');
+      const akola = vidarbha?.report1Rows.find((r) => r.stationId === '42933');
+      assert.ok(akola);
+
+      // Morning 25 Oct 03Z values:
+      assert.equal(akola.tmin, 21.0);
+      // Carried forward Tmax from 24 Oct 12Z:
+      assert.equal(akola.tmax, 35.8, 'Tmax from 24 Oct 12Z must carry forward to 25 Oct 03Z');
+      assert.ok(akola.tmaxDeparture !== null, 'Tmax departure must be computed');
+
+      // 3. When 25 Oct 12Z arrives, it updates Tmax to 25 Oct afternoon reading:
+      const synop25Oct12Z = `AAXX 25124
+42933 32996 02502 10365 20190 40115 333 10372 58005 555 10000=`;
+      const res12Z = generateDailyReports(
+        synop25Oct12Z,
+        '2026-10-25',
+        defaultPentadNormalProvider,
+        undefined,
+        {
+          utcSlot: '12Z',
+          observationStore: store,
+        }
+      );
+
+      const vidarbha12Z = res12Z.subdivisions.find((s) => s.subdivision.id === '26');
+      const akola12Z = vidarbha12Z?.report1Rows.find((r) => r.stationId === '42933');
+      assert.ok(akola12Z);
+      assert.equal(akola12Z.tmin, 21.0, 'Retains morning Tmin');
+      assert.equal(akola12Z.tmax, 37.2, 'Updated with 25 Oct 12Z afternoon Tmax');
+    });
+
+    it('propagates 24 Oct 12Z Tmax even if 25 Oct 03Z was ingested prior to 24 Oct 12Z', () => {
+      const store = new InMemoryObservationStore();
+
+      // 1. Ingest 25 Oct 03Z first (without Section 333 Group 1)
+      const synop25Oct03Z = `AAXX 25034
+42933 32996 00000 10250 20185 40150 333 20205 58010 555 10000=`;
+      store.ingestBulletin('03Z', synop25Oct03Z, '2026-10-25');
+
+      // Check initially 25 Oct has no Tmax
+      const obsBefore = store.getStationObservation('42933', '2026-10-25');
+      assert.equal(obsBefore?.tmax, null);
+
+      // 2. Later, forecaster enters 24 Oct 12Z
+      const synop24Oct12Z = `AAXX 24124
+42933 32996 02502 10325 20195 40120 333 10364 58005 555 10000=`;
+      store.ingestBulletin('12Z', synop24Oct12Z, '2026-10-24');
+
+      // 3. 25 Oct record in store is forward-propagated with 24 Oct 12Z Tmax
+      const obsAfter = store.getStationObservation('42933', '2026-10-25');
+      assert.equal(obsAfter?.tmax, 36.4, '25 Oct record must have 24 Oct 12Z Tmax');
+
+      // 4. Report for 25 Oct 03Z now displays 36.4
+      const res03Z = generateDailyReports(
+        '',
+        '2026-10-25',
+        defaultPentadNormalProvider,
+        undefined,
+        {
+          utcSlot: '03Z',
+          observationStore: store,
+        }
+      );
+      const akolaReport = res03Z.subdivisions
+        .find((s) => s.subdivision.id === '26')
+        ?.report1Rows.find((r) => r.stationId === '42933');
+      assert.equal(akolaReport?.tmax, 36.4);
+    });
+  });
 });
+

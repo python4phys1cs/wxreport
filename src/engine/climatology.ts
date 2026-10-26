@@ -137,6 +137,20 @@ export function getPreviousDayDateString(dateStr: string): string {
 }
 
 /**
+ * Returns next day's date string (YYYY-MM-DD) in Asia/Kolkata timezone.
+ */
+export function getNextDayDateString(dateStr: string): string {
+  const parts = dateStr.split('-').map(Number);
+  // Construct UTC date at noon to avoid boundary shifting
+  const d = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2], 12, 0, 0));
+  d.setUTCDate(d.getUTCDate() + 1);
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/**
  * Resolves the 2-digit pentad string ("01" to "73") using the exact legacy PHP logic.
  *
  * Source code reference (from 03 UTC ingestion script):

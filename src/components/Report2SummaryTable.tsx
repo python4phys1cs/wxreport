@@ -114,7 +114,7 @@ export const Report2SummaryTable: React.FC<Report2Props> = ({
   const orderedSubdivisions = sortSubdivisionsForOperationalReports(subdivisions);
 
   return (
-    <section className="report-section" aria-label="Subdivision Realised Weather Summary">
+    <section className="report-section weather-summary-print-page" aria-label="Subdivision Realised Weather Summary">
       <div className="table-wrapper">
         <table className="op-table" aria-label="Subdivision Realised Weather Summary Table">
           <thead>

@@ -10,7 +10,7 @@ import type {
   UtcSlot,
   DuplicateHandlingPolicy,
 } from '../../engine/observationStore.ts';
-import { getPreviousDayDateString } from '../../engine/observationStore.ts';
+import { getPreviousDayDateString, getNextDayDateString } from '../../engine/observationStore.ts';
 import { parseSynopBulletin, parse12UtcBulletin } from '../../parser/synopDecoder.ts';
 import { getStation } from '../../constants/stationRegistry.ts';
 
@@ -312,6 +312,7 @@ export class SupabaseObservationStoreService {
 
     const rowsToUpsert: DbStationObservationRow[] = [];
     const priorDayRowsToUpsert: DbStationObservationRow[] = [];
+    const nextDayRowsToUpsert: DbStationObservationRow[] = [];
 
     if (utcSlot === '03Z') {
       const parsed03 = parseSynopBulletin(rawBulletin);
@@ -420,6 +421,15 @@ export class SupabaseObservationStoreService {
             };
             priorDayRowsToUpsert.push(observationToRow(newPrior));
           }
+        } else if (!current.manualEdits?.tmax && (current.tmax === null || current.tmaxDate === previousDate)) {
+          // Carry forward previous day's evening Tmax if 03Z telegram omits Section 333 Group 1
+          const priorRec = priorExistingMap.get(stnId);
+          if (priorRec && priorRec.tmax !== null && priorRec.tmax !== undefined && !isNaN(priorRec.tmax)) {
+            current.tmax = priorRec.tmax;
+            current.tmaxDate = previousDate;
+            current.tmaxSlot = '03Z';
+            current.tmaxPreviousDay = priorRec.tmax;
+          }
         }
 
         // Morning 0830 RH
@@ -476,6 +486,12 @@ export class SupabaseObservationStoreService {
       // 12Z Bulletin Ingestion
       const parsed12 = parse12UtcBulletin(rawBulletin);
       decodedCount = parsed12.length;
+      const nextDate = getNextDayDateString(cleanDate);
+      const nextExisting = await this.getObservationsForDate(nextDate).catch(() => []);
+      const nextExistingMap = new Map<string, PersistedStationObservation>();
+      for (const n of nextExisting) {
+        nextExistingMap.set(n.stationId, n);
+      }
 
       for (const obs of parsed12) {
         if (!obs.stationId) continue;
@@ -523,6 +539,16 @@ export class SupabaseObservationStoreService {
             current.tmax = obs.tmax;
             current.tmaxDate = cleanDate;
             current.tmaxSlot = '12Z';
+          }
+
+          // Propagate forward to next day (D1) record in Supabase if exists
+          const nextRec = nextExistingMap.get(stnId);
+          if (nextRec && !nextRec.manualEdits?.tmax && (nextRec.tmax === null || nextRec.tmaxDate === cleanDate || nextRec.tmaxSlot === '03Z')) {
+            nextRec.tmax = obs.tmax;
+            nextRec.tmaxDate = cleanDate;
+            nextRec.tmaxSlot = '03Z';
+            nextRec.tmaxPreviousDay = obs.tmax;
+            nextDayRowsToUpsert.push(observationToRow(nextRec));
           }
         }
 
@@ -597,6 +623,16 @@ export class SupabaseObservationStoreService {
 
       if (priorErr) {
         console.warn('Prior day Tmax backfill warning:', priorErr.message);
+      }
+    }
+
+    if (nextDayRowsToUpsert.length > 0) {
+      const { error: nextErr } = await this.client
+        .from('station_observations')
+        .upsert(nextDayRowsToUpsert, { onConflict: 'reporting_date,station_id' });
+
+      if (nextErr) {
+        console.warn('Next day Tmax forward propagation warning:', nextErr.message);
       }
     }
 

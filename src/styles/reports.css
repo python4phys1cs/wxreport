@@ -1641,7 +1641,10 @@ body {
 
 /* ==========================================================================
    Print Stylesheet (@media print)
-   Strictly enforced A4 Portrait narrow-margin layout
+   Strictly enforced A4 Portrait layout
+   - Consolidated Report: strictly 2 pages
+   - Weather Summary Report: strictly 1 page
+   - Crisp B/W readability, tabular numerals, unified typography
    ========================================================================== */
 .print-only {
   display: none;
@@ -1650,31 +1653,32 @@ body {
 @media print {
   @page {
     size: A4 portrait;
-    /* Default browser/system print margins restored: custom margin override removed */
+    /* Default browser/system print margins preserved */
   }
 
-  *, *:before, *:after {
+  /* Universal high-contrast black & white reset */
+  *, *::before, *::after {
     color: #000000 !important;
     text-shadow: none !important;
-    background: transparent !important;
     box-shadow: none !important;
   }
 
-  body {
+  html, body {
     background-color: #ffffff !important;
     color: #000000 !important;
-    font-size: 6.8pt !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+    font-size: 7.2pt !important;
     line-height: 1.2 !important;
+    font-variant-numeric: tabular-nums lining-nums !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
-  .report-container {
-    max-width: 100% !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    background-color: #ffffff !important;
+  /* Display formal print-only headers and hide interactive UI chrome */
+  .print-only {
+    display: block !important;
   }
 
-  /* Hide navigation, controls, drawers, modals, AND large report headings from printed output */
   .no-print,
   .app-header,
   .hamburger-drawer,
@@ -1685,20 +1689,167 @@ body {
   .status-bar,
   .report-toolbar,
   .subdivision-filter-bar,
-  .print-only,
-  .report-section-header {
+  .edit-mode-banner,
+  .report-section-header,
+  .minimal-report-nav-bar,
+  .btn,
+  button {
     display: none !important;
+  }
+
+  /* Formal IMD Operational Print Header */
+  .operational-print-header {
+    display: block !important;
+    width: 100% !important;
+    margin: 0 0 5pt 0 !important;
+    padding: 0 0 3.5pt 0 !important;
+    border-bottom: 1.2pt solid #000000 !important;
+    text-align: center !important;
+  }
+
+  .operational-print-header .oph-top {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    font-size: 6.8pt !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.3pt !important;
+    text-transform: uppercase !important;
+    margin-bottom: 1.5pt !important;
+    color: #000000 !important;
+  }
+
+  .operational-print-header .oph-title {
+    font-size: 9pt !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.2pt !important;
+    text-transform: uppercase !important;
+    margin: 1.5pt 0 !important;
+    color: #000000 !important;
+  }
+
+  .operational-print-header .oph-meta {
+    font-size: 7pt !important;
+    font-weight: 500 !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    gap: 8pt !important;
+    color: #000000 !important;
+  }
+
+  .operational-print-header .oph-sep {
+    font-weight: 700 !important;
+    color: #000000 !important;
+  }
+
+  .report-container {
+    max-width: 100% !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background-color: #ffffff !important;
+  }
+
+  .active-report-view {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
   .report-section {
     border: none !important;
     padding: 0 !important;
-    margin-bottom: 6pt !important;
+    margin: 0 !important;
     box-shadow: none !important;
-    page-break-inside: auto;
+    background-color: #ffffff !important;
   }
 
-  /* Subdivision row extremes in Consolidated Observation Report */
+  .table-wrapper {
+    overflow: visible !important;
+    margin-bottom: 0 !important;
+    width: 100% !important;
+  }
+
+  /* Table layout for A4 Portrait */
+  .op-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    border: 0.75pt solid #000000 !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+    font-size: 7.2pt !important;
+    line-height: 1.2 !important;
+    font-variant-numeric: tabular-nums lining-nums !important;
+    page-break-inside: auto;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .op-table thead {
+    display: table-header-group !important; /* Repeat table header across printed pages */
+  }
+
+  .op-table tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .op-table th,
+  .op-table td {
+    border: 0.5pt solid #000000 !important;
+    padding: 2.2pt 2.8pt !important;
+    line-height: 1.18 !important;
+    vertical-align: middle !important;
+    text-align: center !important;
+  }
+
+  /* Table Headers - subtle light grey in B/W */
+  .op-table thead th {
+    background-color: #f0f0f0 !important;
+    color: #000000 !important;
+    font-weight: 700 !important;
+    font-size: 7pt !important;
+    line-height: 1.15 !important;
+    border: 0.5pt solid #000000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Pure white data cells for high-contrast B/W printing */
+  .op-table td {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  .op-table th.col-station,
+  .op-table td.cell-station {
+    text-align: left !important;
+    font-weight: 700 !important;
+    white-space: nowrap !important;
+    color: #000000 !important;
+    font-size: 7.2pt !important;
+  }
+
+  .op-table th.col-rain-sub {
+    font-size: 5.8pt !important;
+    line-height: 1.1 !important;
+    padding: 1pt 1.5pt !important;
+    max-width: 48pt !important;
+    white-space: normal !important;
+  }
+
+  /* Subdivision subheaders in Consolidated Report */
+  .op-table td.cell-subhead {
+    background-color: #e5e5e5 !important;
+    color: #000000 !important;
+    font-weight: 700 !important;
+    font-size: 7.5pt !important;
+    padding: 2.5pt 3.5pt !important;
+    border: 0.65pt solid #000000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
   .subhead-content {
     display: flex !important;
     align-items: center !important;
@@ -1706,12 +1857,19 @@ body {
     width: 100% !important;
   }
 
+  .subhead-title {
+    font-size: 7.8pt !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.3pt !important;
+  }
+
   .subhead-extremes {
     display: inline-flex !important;
-    flex-wrap: wrap !important;
+    flex-wrap: nowrap !important;
     align-items: center !important;
-    gap: 3pt !important;
-    font-size: 6.5pt !important;
+    gap: 4pt !important;
+    font-size: 6.8pt !important;
     font-weight: 500 !important;
   }
 
@@ -1721,94 +1879,101 @@ body {
   }
 
   .subhead-extreme-sep {
-    color: #4b5563 !important;
+    color: #000000 !important;
+    font-weight: 600 !important;
   }
 
-  .forecast-section {
-    margin-top: 6pt !important;
-    border-top: 0.5pt solid #000000 !important;
-    padding-top: 4pt !important;
-    page-break-inside: auto;
+  /* Consolidated Report (Report 1): strictly 2-page partition */
+  .consolidated-page1-break {
+    break-after: page !important;
+    page-break-after: always !important;
   }
 
-  .forecast-section-header {
-    display: block !important;
-    margin-bottom: 2pt !important;
-    border-bottom: 0.5pt solid #000000 !important;
-    padding-bottom: 1.5pt !important;
-  }
-
-  .forecast-title {
-    font-size: 7.5pt !important;
-    font-weight: 700 !important;
-    text-transform: uppercase !important;
-  }
-
-  .forecast-meta {
-    font-size: 5.8pt !important;
-  }
-
-  .table-wrapper {
-    overflow: visible !important;
-    margin-bottom: 0 !important;
-  }
-
-  /* Table layout for A4 Portrait */
-  .op-table {
-    width: 100% !important;
-    font-size: 6.2pt !important;
-    page-break-inside: auto;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-
-  .op-table thead {
-    display: table-header-group !important; /* Repeat table header across pages */
-  }
-
-  .op-table tr {
+  /* Weather Summary Report (Report 2): strictly 1-page fit */
+  .weather-summary-print-page {
+    break-inside: avoid !important;
     page-break-inside: avoid !important;
+    max-width: 100% !important;
   }
 
-  .op-table th,
-  .op-table td {
-    border: 0.5pt solid #000000 !important;
-    padding: 1.2pt 1.8pt !important;
+  .weather-summary-print-page .op-table {
+    font-size: 7pt !important;
+  }
+
+  .weather-summary-print-page .op-table th,
+  .weather-summary-print-page .op-table td {
+    padding: 1.8pt 2.4pt !important;
     line-height: 1.15 !important;
   }
 
-  .op-table thead th {
-    background-color: #f3f4f6 !important;
-    font-weight: 700 !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-
-  .op-table th.col-rain-sub {
-    font-size: 5.2pt !important;
+  .summary-extreme-container {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.5pt !important;
     line-height: 1.1 !important;
-    padding: 1pt 1.5pt !important;
-    max-width: 48pt !important;
-    white-space: normal !important;
   }
 
-  .op-table td.cell-subhead {
-    background-color: #e5e7eb !important;
+  .extreme-value-line {
     font-weight: 700 !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
+    font-size: 6.8pt !important;
+  }
+
+  .extreme-districts-line {
+    font-size: 6.2pt !important;
+    font-weight: 600 !important;
+  }
+
+  .forecast-section {
+    margin-top: 5pt !important;
+    border-top: 0.75pt solid #000000 !important;
+    padding-top: 3pt !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .forecast-section-header {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: baseline !important;
+    margin-bottom: 2pt !important;
+    padding-bottom: 1.5pt !important;
+    border-bottom: 0.5pt solid #000000 !important;
+  }
+
+  .forecast-title {
+    font-size: 7.2pt !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    margin: 0 !important;
+  }
+
+  .forecast-subheading-lighter,
+  .forecast-subdivision-label {
+    font-size: 6.5pt !important;
+    font-style: italic !important;
+    font-weight: 600 !important;
+    color: #000000 !important;
   }
 
   .cell-forecast-entry {
-    height: 15pt !important;
-    min-height: 15pt !important;
+    height: 13.5pt !important;
+    min-height: 13.5pt !important;
+    max-height: 14.5pt !important;
     padding: 0 !important;
+    text-align: center !important;
   }
 
   .forecast-input {
-    font-size: 6pt !important;
+    width: 100% !important;
+    height: 100% !important;
+    font-size: 6.8pt !important;
+    font-weight: 600 !important;
     background: transparent !important;
     border: none !important;
+    text-align: center !important;
+    color: #000000 !important;
+    box-sizing: border-box !important;
+    padding: 0 !important;
   }
 
   .forecast-legend {

@@ -1096,6 +1096,19 @@ export default function App() {
     subdivision: 'Subdivision-wise Observation Report',
   };
 
+  const getPrintReportTitle = (reportType: ReportViewType | null): string => {
+    if (reportType === 'consolidated') {
+      return 'CONSOLIDATED DAILY WEATHER REPORT — STATION OBSERVATIONS';
+    }
+    if (reportType === 'summary') {
+      return 'DAILY WEATHER REPORT — SUBLOBAL SUMMARY & 7-DAY FORECAST';
+    }
+    if (reportType === 'subdivision') {
+      return 'SUBDIVISION-WISE DAILY WEATHER OBSERVATIONS';
+    }
+    return 'DAILY OPERATIONAL METEOROLOGICAL REPORT';
+  };
+
   // 1. Session verification in progress
   if (authState === 'checking') {
     return (
@@ -1380,15 +1393,22 @@ export default function App() {
               </div>
             </div>
 
-            {/* Dedicated Print-only Header */}
+            {/* Dedicated Formal Operational Print Header */}
             {reportsResult && (
-              <header className="print-only">
-                <div className="print-header-title">
-                  WXOps Operational Meteorological Reports: {reportTitleMap[minimalActiveReport]}
+              <header className="print-only operational-print-header" aria-hidden="true">
+                <div className="oph-top">
+                  <span className="oph-org">INDIA METEOROLOGICAL DEPARTMENT</span>
+                  <span className="oph-centre">REGIONAL METEOROLOGICAL CENTRE, NAGPUR</span>
                 </div>
-                <div className="print-header-meta">
-                  <strong>Observation Date:</strong> {reportsResult.reportingDate} (0830 IST) &nbsp;|&nbsp;&nbsp;
-                  <strong>Previous Day Evening:</strong> {reportsResult.eveningDate} (1730 IST)
+                <div className="oph-title">
+                  {getPrintReportTitle(minimalActiveReport)}
+                </div>
+                <div className="oph-meta">
+                  <span><strong>Observation Date:</strong> {reportsResult.reportingDate} (0830 IST)</span>
+                  <span className="oph-sep">&bull;</span>
+                  <span><strong>Previous Day Evening:</strong> {reportsResult.eveningDate} (1730 IST)</span>
+                  <span className="oph-sep">&bull;</span>
+                  <span><strong>Operational Issue:</strong> 0830 IST</span>
                 </div>
               </header>
             )}
@@ -1456,15 +1476,22 @@ export default function App() {
         )
       ) : (
         <>
-          {/* Dedicated Print-only Header */}
+          {/* Dedicated Formal Operational Print Header */}
           {reportsResult && (
-            <header className="print-only">
-              <div className="print-header-title">
-                WXOps Operational Meteorological Reports: {reportTitleMap[activeReport]}
+            <header className="print-only operational-print-header" aria-hidden="true">
+              <div className="oph-top">
+                <span className="oph-org">INDIA METEOROLOGICAL DEPARTMENT</span>
+                <span className="oph-centre">REGIONAL METEOROLOGICAL CENTRE, NAGPUR</span>
               </div>
-              <div className="print-header-meta">
-                <strong>Observation Date:</strong> {reportsResult.reportingDate} (0830 IST) &nbsp;|&nbsp;&nbsp;
-                <strong>Previous Day Evening:</strong> {reportsResult.eveningDate} (1730 IST)
+              <div className="oph-title">
+                {getPrintReportTitle(activeReport)}
+              </div>
+              <div className="oph-meta">
+                <span><strong>Observation Date:</strong> {reportsResult.reportingDate} (0830 IST)</span>
+                <span className="oph-sep">&bull;</span>
+                <span><strong>Previous Day Evening:</strong> {reportsResult.eveningDate} (1730 IST)</span>
+                <span className="oph-sep">&bull;</span>
+                <span><strong>Operational Issue:</strong> 0830 IST</span>
               </div>
             </header>
           )}

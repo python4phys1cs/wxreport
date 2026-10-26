@@ -170,6 +170,16 @@ export const ForecasterSummaryTable: React.FC<ForecastProps> = ({ reportingDate 
 
       <div className="table-wrapper">
         <table className="op-table forecast-table" aria-label="Subdivision Forecaster Entry Table">
+          <colgroup>
+            <col style={{ width: '23%' }} />
+            <col style={{ width: '11%' }} />
+            <col style={{ width: '11%' }} />
+            <col style={{ width: '11%' }} />
+            <col style={{ width: '11%' }} />
+            <col style={{ width: '11%' }} />
+            <col style={{ width: '11%' }} />
+            <col style={{ width: '12%' }} />
+          </colgroup>
           <thead>
             <tr>
               <th className="col-station">Subdivision</th>
@@ -235,6 +245,16 @@ export const DistrictForecastTable: React.FC<ForecastProps> = ({ reportingDate }
 
       <div className="table-wrapper">
         <table className="op-table forecast-table" aria-label="District-wise Forecast Table">
+          <colgroup>
+            <col style={{ width: '23%' }} />
+            <col style={{ width: '11%' }} />
+            <col style={{ width: '11%' }} />
+            <col style={{ width: '11%' }} />
+            <col style={{ width: '11%' }} />
+            <col style={{ width: '11%' }} />
+            <col style={{ width: '11%' }} />
+            <col style={{ width: '12%' }} />
+          </colgroup>
           <thead>
             <tr>
               <th className="col-station">District</th>

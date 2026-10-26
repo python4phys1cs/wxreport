@@ -61,6 +61,31 @@ describe('Targeted Corrections Regression Test Suite', () => {
         '42.5 °C at NAGPUR'
       );
     });
+
+    it('enforces A4 portrait print layout, high-contrast B/W readability, 2-page consolidated break, and 1-page weather summary layout', () => {
+      const cssPath = path.resolve(process.cwd(), 'src/styles/reports.css');
+      const cssContent = fs.readFileSync(cssPath, 'utf8');
+
+      // Verify print stylesheet exists
+      const printBlock = cssContent.slice(cssContent.indexOf('@media print'));
+      assert.ok(printBlock, '@media print block must exist');
+
+      // Consolidated 2-page partition
+      assert.match(printBlock, /\.consolidated-page1-break\s*\{[^}]*break-after:\s*page/s);
+      assert.match(printBlock, /\.consolidated-page1-break\s*\{[^}]*page-break-after:\s*always/s);
+
+      // Weather summary 1-page fit
+      assert.match(printBlock, /\.weather-summary-print-page\s*\{[^}]*break-inside:\s*avoid/s);
+      assert.match(printBlock, /\.weather-summary-print-page\s*\{[^}]*page-break-inside:\s*avoid/s);
+
+      // Formal operational print header
+      assert.match(printBlock, /\.operational-print-header/);
+
+      // Black and white high contrast
+      assert.match(printBlock, /\.op-table\s+td\s*\{[^}]*background-color:\s*#ffffff/s);
+      assert.match(printBlock, /\.op-table\s+thead\s+th\s*\{[^}]*background-color:\s*#f0f0f0/s);
+      assert.match(printBlock, /\.op-table\s+td\.cell-subhead\s*\{[^}]*background-color:\s*#e5e5e5/s);
+    });
   });
 
   describe('2. Legacy PHP Calculation Equivalence & Discrepancy Fixes', () => {

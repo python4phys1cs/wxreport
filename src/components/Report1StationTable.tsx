@@ -80,6 +80,19 @@ export const Report1StationTable: React.FC<Report1Props> = ({
           className={`op-table ${isEditMode ? 'table-in-edit-mode' : ''}`}
           aria-label="Daily Station Weather Observations Table"
         >
+          <colgroup>
+            <col style={{ width: '20%' }} />
+            <col style={{ width: '7.5%' }} />
+            <col style={{ width: '7.5%' }} />
+            <col style={{ width: '7.5%' }} />
+            <col style={{ width: '7.5%' }} />
+            <col style={{ width: '7.5%' }} />
+            <col style={{ width: '7.5%' }} />
+            <col style={{ width: '8.5%' }} />
+            <col style={{ width: '8.5%' }} />
+            <col style={{ width: '9%' }} />
+            <col style={{ width: '9%' }} />
+          </colgroup>
           <thead>
             <tr>
               <th rowSpan={2} className="col-station">City / Observatory</th>
@@ -101,9 +114,13 @@ export const Report1StationTable: React.FC<Report1Props> = ({
             </tr>
           </thead>
           <tbody>
-            {orderedSubdivisions.map((subData) => {
+            {orderedSubdivisions.map((subData, subIdx) => {
               const sortedStationRows = sortStationsAlphabetically(subData.report1Rows);
               const summary = subData.report2Summary;
+              // Split after West Madhya Pradesh (id 19 or index 1) when subsequent subdivisions exist
+              const isPage1SplitSubdivision =
+                (subData.subdivision.id === '19' || subIdx === 1) &&
+                subIdx < orderedSubdivisions.length - 1;
 
               return (
                 <React.Fragment key={subData.subdivision.id}>
@@ -127,15 +144,21 @@ export const Report1StationTable: React.FC<Report1Props> = ({
                       </div>
                     </td>
                   </tr>
-                  {sortedStationRows.map((row: StationReportRow) => {
+                  {sortedStationRows.map((row: StationReportRow, stnIdx: number) => {
                     const hasData =
                       row.tmin !== null ||
                       row.tmax !== null ||
                       row.rainfall !== null ||
                       row.rh0830 !== null;
+                    const isLastStationOfPage1 =
+                      isPage1SplitSubdivision &&
+                      stnIdx === sortedStationRows.length - 1;
 
                     return (
-                      <tr key={row.stationId}>
+                      <tr
+                        key={row.stationId}
+                        className={isLastStationOfPage1 ? 'consolidated-page1-break' : undefined}
+                      >
                         <td className="cell-station">{row.stationName.toUpperCase()}</td>
 
                         {/* Maximum Temperature */}
