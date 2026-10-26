@@ -117,9 +117,9 @@ export const Report1StationTable: React.FC<Report1Props> = ({
             {orderedSubdivisions.map((subData, subIdx) => {
               const sortedStationRows = sortStationsAlphabetically(subData.report1Rows);
               const summary = subData.report2Summary;
-              // Split after West Madhya Pradesh (id 19 or index 1) when subsequent subdivisions exist
+              // Move East Madhya Pradesh to Page 1 and keep only Chhattisgarh on Page 2
               const isPage1SplitSubdivision =
-                (subData.subdivision.id === '19' || subIdx === 1) &&
+                (subData.subdivision.id === '20' || subIdx === 2) &&
                 subIdx < orderedSubdivisions.length - 1;
 
               return (

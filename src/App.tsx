@@ -1101,7 +1101,7 @@ export default function App() {
       return 'CONSOLIDATED DAILY WEATHER REPORT — STATION OBSERVATIONS';
     }
     if (reportType === 'summary') {
-      return 'DAILY WEATHER REPORT — SUBLOBAL SUMMARY & 7-DAY FORECAST';
+      return 'DAILY WEATHER REPORT — Weather Summary and 7-Day Forecast';
     }
     if (reportType === 'subdivision') {
       return 'SUBDIVISION-WISE DAILY WEATHER OBSERVATIONS';
@@ -1405,10 +1405,6 @@ export default function App() {
                 </div>
                 <div className="oph-meta">
                   <span><strong>Observation Date:</strong> {reportsResult.reportingDate} (0830 IST)</span>
-                  <span className="oph-sep">&bull;</span>
-                  <span><strong>Previous Day Evening:</strong> {reportsResult.eveningDate} (1730 IST)</span>
-                  <span className="oph-sep">&bull;</span>
-                  <span><strong>Operational Issue:</strong> 0830 IST</span>
                 </div>
               </header>
             )}
@@ -1488,10 +1484,6 @@ export default function App() {
               </div>
               <div className="oph-meta">
                 <span><strong>Observation Date:</strong> {reportsResult.reportingDate} (0830 IST)</span>
-                <span className="oph-sep">&bull;</span>
-                <span><strong>Previous Day Evening:</strong> {reportsResult.eveningDate} (1730 IST)</span>
-                <span className="oph-sep">&bull;</span>
-                <span><strong>Operational Issue:</strong> 0830 IST</span>
               </div>
             </header>
           )}
