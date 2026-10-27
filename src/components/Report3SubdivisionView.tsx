@@ -6,15 +6,19 @@
 import React, { useState } from 'react';
 import type { SubdivisionReportData } from '../engine/reportOrchestrator.ts';
 import type { StationReportRow, SubdivisionReportSummary } from '../engine/reportCalculations.ts';
+import type { UtcSlot } from '../utils/timeSlot.ts';
 import { sortStationsAlphabetically } from '../utils/stationSort.ts';
 import { CANONICAL_STATIONS } from '../constants/stationRegistry.ts';
 import type { EditableStationField } from './Report1StationTable.tsx';
+import { shiftDateString } from './SynopInput.tsx';
 
 interface Report3SubdivisionProps {
   subdivisions: SubdivisionReportData[];
   reportingDate: string;
   eveningDate: string;
+  reportSlot?: UtcSlot;
   isEditMode?: boolean;
+  showVisibility?: boolean;
   onUpdateStationValue?: (
     stationId: string,
     field: EditableStationField,
@@ -96,9 +100,15 @@ export const Report3SubdivisionView: React.FC<Report3SubdivisionProps> = ({
   subdivisions,
   reportingDate,
   eveningDate,
+  reportSlot = '03Z',
   isEditMode = false,
+  showVisibility = false,
   onUpdateStationValue,
 }) => {
+  const is03Z = reportSlot !== '12Z';
+  const yesterdayDate = eveningDate || (reportingDate ? shiftDateString(reportingDate, -1) : '');
+  const todayDate = reportingDate || '';
+
   // Make Vidarbha (subdivision id '26') the default and first focused subdivision
   const [selectedSubId, setSelectedSubId] = useState<string>(() => {
     const hasVidarbha = subdivisions.some((s) => s.subdivision.id === '26');
@@ -117,7 +127,7 @@ export const Report3SubdivisionView: React.FC<Report3SubdivisionProps> = ({
           Subdivision-wise Observation Report
         </h2>
         <div className="report-meta">
-          Regional subdivision breakdown and observations for 24 hours ending 0830 IST on {reportingDate}
+          Regional subdivision breakdown and observations for 24 hours ending {is03Z ? '0830' : '1730'} IST on {reportingDate}
         </div>
       </div>
 
@@ -178,14 +188,73 @@ export const Report3SubdivisionView: React.FC<Report3SubdivisionProps> = ({
                 className={`op-table ${isEditMode ? 'table-in-edit-mode' : ''}`}
                 aria-label={`${subData.subdivision.name} Stations Table`}
               >
+                {is03Z ? (
+                  showVisibility ? (
+                    <colgroup>
+                      <col style={{ width: '22%' }} />
+                      <col style={{ width: '8.5%' }} />
+                      <col style={{ width: '8.5%' }} />
+                      <col style={{ width: '8.5%' }} />
+                      <col style={{ width: '8.5%' }} />
+                      <col style={{ width: '8.5%' }} />
+                      <col style={{ width: '8.5%' }} />
+                      <col style={{ width: '9%' }} />
+                      <col style={{ width: '8.5%' }} />
+                      <col style={{ width: '8%' }} />
+                    </colgroup>
+                  ) : (
+                    <colgroup>
+                      <col style={{ width: '24%' }} />
+                      <col style={{ width: '9%' }} />
+                      <col style={{ width: '9%' }} />
+                      <col style={{ width: '9%' }} />
+                      <col style={{ width: '9%' }} />
+                      <col style={{ width: '9%' }} />
+                      <col style={{ width: '9%' }} />
+                      <col style={{ width: '11%' }} />
+                      <col style={{ width: '11%' }} />
+                    </colgroup>
+                  )
+                ) : (
+                  showVisibility ? (
+                    <colgroup>
+                      <col style={{ width: '20%' }} />
+                      <col style={{ width: '7%' }} />
+                      <col style={{ width: '7%' }} />
+                      <col style={{ width: '7%' }} />
+                      <col style={{ width: '7%' }} />
+                      <col style={{ width: '7%' }} />
+                      <col style={{ width: '7%' }} />
+                      <col style={{ width: '7.5%' }} />
+                      <col style={{ width: '7.5%' }} />
+                      <col style={{ width: '8%' }} />
+                      <col style={{ width: '7.5%' }} />
+                      <col style={{ width: '7.5%' }} />
+                    </colgroup>
+                  ) : (
+                    <colgroup>
+                      <col style={{ width: '22%' }} />
+                      <col style={{ width: '7.5%' }} />
+                      <col style={{ width: '7.5%' }} />
+                      <col style={{ width: '7.5%' }} />
+                      <col style={{ width: '7.5%' }} />
+                      <col style={{ width: '7.5%' }} />
+                      <col style={{ width: '7.5%' }} />
+                      <col style={{ width: '8%' }} />
+                      <col style={{ width: '8%' }} />
+                      <col style={{ width: '8.5%' }} />
+                      <col style={{ width: '8.5%' }} />
+                    </colgroup>
+                  )
+                )}
                 <thead>
                   <tr>
-                    <th rowSpan={2} className="col-station">City / Observatory</th>
+                    <th rowSpan={3} className="col-station">City / Observatory</th>
                     <th colSpan={3}>Maximum Temperature (°C)</th>
                     <th colSpan={3}>Minimum Temperature (°C)</th>
-                    <th colSpan={2}>Relative Humidity (%)</th>
-                    <th rowSpan={2}>Visibility</th>
-                    <th colSpan={2}>Rainfall (mm)</th>
+                    <th colSpan={is03Z ? 1 : 2}>Relative Humidity (%)</th>
+                    {showVisibility && <th rowSpan={2}>Visibility</th>}
+                    <th colSpan={is03Z ? 1 : 2} rowSpan={is03Z ? 2 : 1}>Rainfall (mm)</th>
                   </tr>
                   <tr>
                     <th>Max</th>
@@ -195,9 +264,16 @@ export const Report3SubdivisionView: React.FC<Report3SubdivisionProps> = ({
                     <th>24h Chg</th>
                     <th>Dep</th>
                     <th>at 0830 IST</th>
-                    <th>at 1730 IST</th>
-                    <th className="col-rain-sub">Last 24 Hours up to 0830 hrs IST</th>
-                    <th className="col-rain-sub">Last 9 Hours up to 1730 hrs IST</th>
+                    {!is03Z && <th>at 1730 IST</th>}
+                    {!is03Z && <th className="col-rain-sub">Last 24 Hours up to 0830 hrs IST</th>}
+                    {!is03Z && <th className="col-rain-sub">Last 9 Hours up to 1730 hrs IST</th>}
+                  </tr>
+                  <tr className="header-date-row">
+                    <th colSpan={3} className="header-date-cell">Observed on {yesterdayDate}</th>
+                    <th
+                      colSpan={3 + (is03Z ? 1 : 2) + (showVisibility ? 1 : 0) + (is03Z ? 1 : 2)}
+                      className="header-date-cell"
+                    >Observed on {todayDate}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -300,34 +376,36 @@ export const Report3SubdivisionView: React.FC<Report3SubdivisionProps> = ({
                             '---'
                           )}
                         </td>
-                        <td className="cell-value">
-                          {isEditMode ? (
-                            <input
-                              type="number"
-                              step="1"
-                              min="0"
-                              max="100"
-                              className={`edit-cell-input ${row.manualEdits?.rh1730 ? 'is-manually-edited' : ''}`}
-                              value={row.rh1730 !== null && row.rh1730 !== undefined ? row.rh1730 : ''}
-                              onChange={(e) => {
-                                const val = e.target.value.trim() === '' ? null : parseInt(e.target.value, 10);
-                                onUpdateStationValue?.(row.stationId, 'rh1730', isNaN(val as number) ? null : val);
-                              }}
-                              aria-label={`1730 RH for ${row.stationName}`}
-                            />
-                          ) : row.rh1730 !== null ? (
-                            <span className="value-with-edit-tag">
-                              {`${row.rh1730}%`}
-                            </span>
-                          ) : (
-                            '---'
-                          )}
-                        </td>
+                        {!is03Z && (
+                          <td className="cell-value">
+                            {isEditMode ? (
+                              <input
+                                type="number"
+                                step="1"
+                                min="0"
+                                max="100"
+                                className={`edit-cell-input ${row.manualEdits?.rh1730 ? 'is-manually-edited' : ''}`}
+                                value={row.rh1730 !== null && row.rh1730 !== undefined ? row.rh1730 : ''}
+                                onChange={(e) => {
+                                  const val = e.target.value.trim() === '' ? null : parseInt(e.target.value, 10);
+                                  onUpdateStationValue?.(row.stationId, 'rh1730', isNaN(val as number) ? null : val);
+                                }}
+                                aria-label={`1730 RH for ${row.stationName}`}
+                              />
+                            ) : row.rh1730 !== null ? (
+                              <span className="value-with-edit-tag">
+                                {`${row.rh1730}%`}
+                              </span>
+                            ) : (
+                              '---'
+                            )}
+                          </td>
+                        )}
 
                         {/* Visibility */}
-                        <td>{row.visibilityText || (hasData ? '---' : '---')}</td>
+                        {showVisibility && <td>{row.visibilityText || (hasData ? '---' : '---')}</td>}
 
-                        {/* Rainfall: Last 24 Hours up to 0830 hrs IST */}
+                        {/* Rainfall: 0830 hrs IST */}
                         <td
                           className="cell-value"
                           style={{
@@ -341,41 +419,43 @@ export const Report3SubdivisionView: React.FC<Report3SubdivisionProps> = ({
                               step="0.1"
                               min="0"
                               className={`edit-cell-input ${(row.manualEdits?.rainfall0830 || row.manualEdits?.rainfall) ? 'is-manually-edited' : ''}`}
-                              value={row.rainfall0830 !== null && row.rainfall0830 !== undefined ? row.rainfall0830 : ''}
+                              value={row.rainfall0830 !== null && row.rainfall0830 !== undefined ? row.rainfall0830 : (row.rainfall !== null && row.rainfall !== undefined ? row.rainfall : '')}
                               onChange={(e) => {
                                 const val = e.target.value.trim() === '' ? null : parseFloat(e.target.value);
                                 onUpdateStationValue?.(row.stationId, 'rainfall0830', isNaN(val as number) ? null : val);
                               }}
                               aria-label={`24h Rainfall (0830 IST) for ${row.stationName}`}
                             />
-) : (
+                          ) : (
                             <span className="value-with-edit-tag">
-                              {formatValue(row.rainfall0830)}
+                              {formatValue(row.rainfall0830 ?? row.rainfall)}
                             </span>
                           )}
                         </td>
 
-                        {/* Rainfall: Last 9 Hours up to 1730 hrs IST */}
-                        <td className="cell-value">
-                          {isEditMode ? (
-                            <input
-                              type="number"
-                              step="0.1"
-                              min="0"
-                              className={`edit-cell-input ${row.manualEdits?.rainfall1730 ? 'is-manually-edited' : ''}`}
-                              value={row.rainfall1730 !== null && row.rainfall1730 !== undefined ? row.rainfall1730 : ''}
-                              onChange={(e) => {
-                                const val = e.target.value.trim() === '' ? null : parseFloat(e.target.value);
-                                onUpdateStationValue?.(row.stationId, 'rainfall1730', isNaN(val as number) ? null : val);
-                              }}
-                              aria-label={`9h Rainfall (1730 IST) for ${row.stationName}`}
-                            />
-                          ) : (
-                            <span className="value-with-edit-tag">
-                              {formatValue(row.rainfall1730)}
-                            </span>
-                          )}
-                        </td>
+                        {/* Rainfall: Last 9 Hours up to 1730 hrs IST (only in 12Z mode) */}
+                        {!is03Z && (
+                          <td className="cell-value">
+                            {isEditMode ? (
+                              <input
+                                type="number"
+                                step="0.1"
+                                min="0"
+                                className={`edit-cell-input ${row.manualEdits?.rainfall1730 ? 'is-manually-edited' : ''}`}
+                                value={row.rainfall1730 !== null && row.rainfall1730 !== undefined ? row.rainfall1730 : ''}
+                                onChange={(e) => {
+                                  const val = e.target.value.trim() === '' ? null : parseFloat(e.target.value);
+                                  onUpdateStationValue?.(row.stationId, 'rainfall1730', isNaN(val as number) ? null : val);
+                                }}
+                                aria-label={`9h Rainfall (1730 IST) for ${row.stationName}`}
+                              />
+                            ) : (
+                              <span className="value-with-edit-tag">
+                                {formatValue(row.rainfall1730)}
+                              </span>
+                            )}
+                          </td>
+                        )}
                       </tr>
                     );
                   })}

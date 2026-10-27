@@ -11,6 +11,7 @@ import {
 } from './observationStatus.ts';
 import { shiftDateString } from '../components/SynopInput.tsx';
 import { InMemoryObservationStore } from '../engine/observationStore.ts';
+import { getDefaultReportSlot } from './timeSlot.ts';
 
 describe('Minimal Observation View & Status Utilities', () => {
   describe('formatMinimalDateParts', () => {
@@ -191,6 +192,38 @@ describe('Minimal Observation View & Status Utilities', () => {
         : (mockSubdivisions[0]?.subdivision.id ?? 'all');
 
       assert.equal(defaultId, 'all');
+    });
+  });
+
+  describe('03Z / 12Z Report Slot Auto-Default (14:00 IST cutoff)', () => {
+    it('15. returns 03Z before 14:00 IST (e.g. 08:30 IST / 03:00 UTC)', () => {
+      // 03:00 UTC = 08:30 IST
+      const dateMorning = new Date('2026-10-27T03:00:00Z');
+      assert.equal(getDefaultReportSlot(dateMorning), '03Z');
+    });
+
+    it('16. returns 03Z at 13:59 IST (08:29 UTC)', () => {
+      // 08:29 UTC = 13:59 IST
+      const dateJustBeforeCutoff = new Date('2026-10-27T08:29:00Z');
+      assert.equal(getDefaultReportSlot(dateJustBeforeCutoff), '03Z');
+    });
+
+    it('17. returns 12Z at exactly 14:00 IST (08:30 UTC)', () => {
+      // 08:30 UTC = 14:00 IST
+      const dateAtCutoff = new Date('2026-10-27T08:30:00Z');
+      assert.equal(getDefaultReportSlot(dateAtCutoff), '12Z');
+    });
+
+    it('18. returns 12Z during evening (e.g. 17:30 IST / 12:00 UTC)', () => {
+      // 12:00 UTC = 17:30 IST
+      const dateEvening = new Date('2026-10-27T12:00:00Z');
+      assert.equal(getDefaultReportSlot(dateEvening), '12Z');
+    });
+
+    it('19. returns 12Z late evening (23:59 IST / 18:29 UTC)', () => {
+      // 18:29 UTC = 23:59 IST
+      const dateLate = new Date('2026-10-27T18:29:00Z');
+      assert.equal(getDefaultReportSlot(dateLate), '12Z');
     });
   });
 });

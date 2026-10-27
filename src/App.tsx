@@ -49,6 +49,7 @@ import { AboutModal } from './components/AboutSection.tsx';
 import type { EditableStationField } from './components/Report1StationTable.tsx';
 import {
   getAutoUtcSlot,
+  getDefaultReportSlot,
   getTodayKolkata,
   formatOperationalClock,
   checkObservationReminder,
@@ -395,6 +396,10 @@ export default function App() {
 
   // 6. Navigation: single hamburger sidebar state & about modal
   const [activeReport, setActiveReport] = useState<ReportViewType>('consolidated');
+  const [minimalActiveReport, setMinimalActiveReport] = useState<ReportViewType | null>(null);
+  // Observation report issue slot (03Z vs 12Z).
+  // Automatically defaults to 03Z before 14:00 IST, and 12Z at/after 14:00 IST.
+  const [reportSlot, setReportSlot] = useState<UtcSlot>(() => getDefaultReportSlot());
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
   const [isAboutOpen, setIsAboutOpen] = useState<boolean>(false);
 
@@ -406,6 +411,30 @@ export default function App() {
   // 7. Station Report Inclusion (Ashoknagar 42665 disabled by default)
   const [stationInclusion, setStationInclusion] = useState<Record<string, boolean>>(() => loadStationInclusion());
 
+  const handleReportSlotChange = useCallback(
+    (slot: UtcSlot) => {
+      setReportSlot(slot);
+      const dates = observationStore.getArchivedDates();
+      if (dates.length > 0 && dates.includes(reportingDate)) {
+        try {
+          const effectiveSlot: UtcSlot =
+            activeReport === 'summary' || minimalActiveReport === 'summary' ? '03Z' : slot;
+          const result = generateDailyReports('', reportingDate, normalProvider, historicalProvider, {
+            utcSlot: effectiveSlot,
+            observationStore,
+            excludedStationIds: getExcludedStationIds(stationInclusion),
+          });
+          if (result.enrichedObservations.length > 0) {
+            setReportsResult(result);
+          }
+        } catch (err) {
+          console.error('Failed to regenerate reports on slot change:', err);
+        }
+      }
+    },
+    [observationStore, reportingDate, normalProvider, historicalProvider, stationInclusion, activeReport, minimalActiveReport]
+  );
+
   const handleStationInclusionChange = useCallback((stationId: string, enabled: boolean) => {
     setStationInclusion((prev) => {
       const next = { ...prev, [stationId]: enabled };
@@ -414,13 +443,15 @@ export default function App() {
       const dates = observationStore.getArchivedDates();
       if (dates.length > 0 && dates.includes(reportingDate)) {
         try {
+          const effectiveSlot: UtcSlot =
+            activeReport === 'summary' || minimalActiveReport === 'summary' ? '03Z' : reportSlot;
           const result = generateDailyReports(
             '',
             reportingDate,
             normalProvider,
             historicalProvider,
             {
-              utcSlot,
+              utcSlot: effectiveSlot,
               observationStore,
               excludedStationIds: excludedIds,
             }
@@ -432,7 +463,7 @@ export default function App() {
       }
       return next;
     });
-  }, [observationStore, normalProvider, historicalProvider, reportingDate, utcSlot]);
+  }, [observationStore, normalProvider, historicalProvider, reportingDate, reportSlot, activeReport, minimalActiveReport]);
 
   const handleResetStationInclusion = useCallback(() => {
     const defaults = getDefaultStationInclusion();
@@ -442,13 +473,15 @@ export default function App() {
     const dates = observationStore.getArchivedDates();
     if (dates.length > 0 && dates.includes(reportingDate)) {
       try {
+        const effectiveSlot: UtcSlot =
+          activeReport === 'summary' || minimalActiveReport === 'summary' ? '03Z' : reportSlot;
         const result = generateDailyReports(
           '',
           reportingDate,
           normalProvider,
           historicalProvider,
           {
-            utcSlot,
+            utcSlot: effectiveSlot,
             observationStore,
             excludedStationIds: excludedIds,
           }
@@ -458,20 +491,22 @@ export default function App() {
         }
       } catch {}
     }
-  }, [observationStore, normalProvider, historicalProvider, reportingDate, utcSlot]);
+  }, [observationStore, normalProvider, historicalProvider, reportingDate, reportSlot, activeReport, minimalActiveReport]);
 
   // 8. Operational date synchronization = automatically load and display reports if observations exist for reporting date, or reset to idle
   useEffect(() => {
     const dates = observationStore.getArchivedDates();
     if (dates.length > 0 && dates.includes(reportingDate)) {
       try {
+        const effectiveSlot: UtcSlot =
+          activeReport === 'summary' || minimalActiveReport === 'summary' ? '03Z' : reportSlot;
         const result = generateDailyReports(
           '',
           reportingDate,
           normalProvider,
           historicalProvider,
           {
-            utcSlot,
+            utcSlot: effectiveSlot,
             observationStore,
             excludedStationIds: getExcludedStationIds(stationInclusion),
           }
@@ -491,7 +526,7 @@ export default function App() {
       setReportsResult(null);
       setGenerationState('idle');
     }
-  }, [observationStore, normalProvider, historicalProvider, utcSlot, reportingDate, stationInclusion]);
+  }, [observationStore, normalProvider, historicalProvider, reportSlot, activeReport, minimalActiveReport, reportingDate, stationInclusion]);
 
   // Settings State inside sidebar
   const [retentionLimit, setRetentionLimit] = useState<number>(() => observationStore.getRetentionLimit());
@@ -505,13 +540,15 @@ export default function App() {
         const dates = observationStore.getArchivedDates();
         if (dates.includes(reportingDate)) {
           try {
+            const effectiveSlot: UtcSlot =
+              activeReport === 'summary' || minimalActiveReport === 'summary' ? '03Z' : reportSlot;
             const result = generateDailyReports(
               '',
               reportingDate,
               normalProvider,
               historicalProvider,
               {
-                utcSlot,
+                utcSlot: effectiveSlot,
                 observationStore,
                 excludedStationIds: getExcludedStationIds(stationInclusion),
               }
@@ -524,7 +561,7 @@ export default function App() {
         }
       }).catch(() => {});
     }
-  }, [authState, reportingDate, dbStatus?.configured, dbStatus?.healthy, observationStore, normalProvider, historicalProvider, utcSlot, stationInclusion]);
+  }, [authState, reportingDate, dbStatus?.configured, dbStatus?.healthy, observationStore, normalProvider, historicalProvider, reportSlot, activeReport, minimalActiveReport, stationInclusion]);
   const [backupFormat, setBackupFormat] = useState<BackupFormat>(() => {
     if (typeof window !== 'undefined' && window.localStorage) {
       const saved = window.localStorage.getItem('wxops_backup_format') as BackupFormat | null;
@@ -582,6 +619,24 @@ export default function App() {
     if (typeof window !== 'undefined' && window.localStorage) {
       try {
         window.localStorage.setItem('wxops_show_cold_wave_count', String(val));
+      } catch {}
+    }
+  };
+
+  // Visibility Column in Reports (Default: Disabled)
+  const [showVisibility, setShowVisibility] = useState<boolean>(() => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const saved = window.localStorage.getItem('wxops_show_visibility_column');
+      if (saved !== null) return saved === 'true';
+    }
+    return false;
+  });
+
+  const handleShowVisibilityChange = (val: boolean) => {
+    setShowVisibility(val);
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        window.localStorage.setItem('wxops_show_visibility_column', String(val));
       } catch {}
     }
   };
@@ -652,8 +707,7 @@ export default function App() {
     setIsObservationModalOpen(true);
   };
 
-  // Minimal view active report state (null = show minimal cards, ReportViewType = viewing dedicated report page)
-  const [minimalActiveReport, setMinimalActiveReport] = useState<ReportViewType | null>(null);
+  // Minimal view active report date parts
   const minimalNavDateParts = useMemo(
     () => formatMinimalDateParts(reportingDate),
     [reportingDate]
@@ -662,19 +716,17 @@ export default function App() {
   const handleViewReportFromMinimal = (report: ReportViewType) => {
     setActiveReport(report);
     setMinimalActiveReport(report);
-    // ensure report result is generated for this date if observations exist
-    if (!reportsResult) {
-      try {
-        const res = generateDailyReports('', reportingDate, normalProvider, historicalProvider, {
-          utcSlot,
-          observationStore,
-          excludedStationIds: getExcludedStationIds(stationInclusion),
-        });
-        if (res.enrichedObservations.length > 0) {
-          setReportsResult(res);
-        }
-      } catch {}
-    }
+    const effectiveSlot: UtcSlot = report === 'summary' ? '03Z' : reportSlot;
+    try {
+      const res = generateDailyReports('', reportingDate, normalProvider, historicalProvider, {
+        utcSlot: effectiveSlot,
+        observationStore,
+        excludedStationIds: getExcludedStationIds(stationInclusion),
+      });
+      if (res.enrichedObservations.length > 0) {
+        setReportsResult(res);
+      }
+    } catch {}
   };
 
   // Overwrite Confirmation Modal State
@@ -776,6 +828,8 @@ export default function App() {
         await sharedObservationClient.ingestBulletin(utcSlot, synopText, reportingDate);
         await refreshDbStatus();
       }
+
+      setReportSlot(utcSlot);
 
       const result = generateDailyReports(
         synopText,
@@ -1054,22 +1108,33 @@ export default function App() {
   }, [observationStore, handleDownloadBackup, refreshDbStatus]);
 
   const handleDeleteAllData = async () => {
+    let dbPurgeError: string | null = null;
     try {
-      if (dbStatus?.configured && dbStatus.healthy) {
-        await sharedObservationClient.clearAll('CONFIRM_DELETE_ALL');
+      if (dbStatus?.configured) {
+        await sharedObservationClient.clearAll('DELETE');
         await refreshDbStatus();
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Failed to purge PostgreSQL observations:', err);
+      dbPurgeError = err instanceof Error ? err.message : String(err);
     }
     observationStore.clear();
     setArchiveDateCount(0);
     setReportsResult(null);
     setGenerationState('idle');
-    setArchiveNotification({
-      type: 'success',
-      message: 'All stored operational observations have been deleted.',
-    });
+    if (dbPurgeError) {
+      setArchiveNotification({
+        type: 'error',
+        message: `Local buffer cleared, but error clearing Supabase database: ${dbPurgeError}`,
+      });
+    } else {
+      setArchiveNotification({
+        type: 'success',
+        message: dbStatus?.configured
+          ? 'Clean slate achieved: all stored observations have been permanently deleted from both local buffer and Supabase PostgreSQL database.'
+          : 'Clean slate achieved: all stored observations have been deleted from local buffer.',
+      });
+    }
   };
 
   const handleClear = () => {
@@ -1150,7 +1215,26 @@ export default function App() {
         isOpen={isMenuOpen}
         onClose={() => setIsMenuOpen(false)}
         activeReport={activeReport}
-        onSelectReport={setActiveReport}
+        onSelectReport={(report) => {
+          setActiveReport(report);
+          if (minimalActiveReport !== null) {
+            setMinimalActiveReport(report);
+          }
+          const effectiveSlot: UtcSlot = report === 'summary' ? '03Z' : reportSlot;
+          const dates = observationStore.getArchivedDates();
+          if (dates.includes(reportingDate)) {
+            try {
+              const res = generateDailyReports('', reportingDate, normalProvider, historicalProvider, {
+                utcSlot: effectiveSlot,
+                observationStore,
+                excludedStationIds: getExcludedStationIds(stationInclusion),
+              });
+              if (res.enrichedObservations.length > 0) {
+                setReportsResult(res);
+              }
+            } catch {}
+          }
+        }}
         archiveDateCount={archiveDateCount}
         retentionLimit={retentionLimit}
         onRetentionChange={handleRetentionChange}
@@ -1174,6 +1258,8 @@ export default function App() {
         onShowHeatWaveCountChange={handleShowHeatWaveCountChange}
         showColdWaveCount={showColdWaveCount}
         onShowColdWaveCountChange={handleShowColdWaveCountChange}
+        showVisibility={showVisibility}
+        onShowVisibilityChange={handleShowVisibilityChange}
         allowHistoricalEdits={allowHistoricalEdits}
         onAllowHistoricalEditsChange={handleAllowHistoricalEditsChange}
         syntaxHighlightingEnabled={syntaxHighlightingEnabled}
@@ -1339,6 +1425,14 @@ export default function App() {
                   onClick={() => {
                     setMinimalActiveReport('consolidated');
                     setActiveReport('consolidated');
+                    try {
+                      const res = generateDailyReports('', reportingDate, normalProvider, historicalProvider, {
+                        utcSlot: reportSlot,
+                        observationStore,
+                        excludedStationIds: getExcludedStationIds(stationInclusion),
+                      });
+                      if (res.enrichedObservations.length > 0) setReportsResult(res);
+                    } catch {}
                   }}
                   title="Consolidated Observation Report"
                 >
@@ -1353,6 +1447,14 @@ export default function App() {
                   onClick={() => {
                     setMinimalActiveReport('summary');
                     setActiveReport('summary');
+                    try {
+                      const res = generateDailyReports('', reportingDate, normalProvider, historicalProvider, {
+                        utcSlot: '03Z',
+                        observationStore,
+                        excludedStationIds: getExcludedStationIds(stationInclusion),
+                      });
+                      if (res.enrichedObservations.length > 0) setReportsResult(res);
+                    } catch {}
                   }}
                   title="Weather Summary Report"
                 >
@@ -1367,6 +1469,14 @@ export default function App() {
                   onClick={() => {
                     setMinimalActiveReport('subdivision');
                     setActiveReport('subdivision');
+                    try {
+                      const res = generateDailyReports('', reportingDate, normalProvider, historicalProvider, {
+                        utcSlot: reportSlot,
+                        observationStore,
+                        excludedStationIds: getExcludedStationIds(stationInclusion),
+                      });
+                      if (res.enrichedObservations.length > 0) setReportsResult(res);
+                    } catch {}
                   }}
                   title="Subdivision-wise Observation Report (Vidarbha default)"
                 >
@@ -1374,6 +1484,33 @@ export default function App() {
                   <span className="tab-text-compact">Vidarbha</span>
                 </button>
               </div>
+
+              {/* 03Z / 12Z Report Slot Switcher for Consolidated & Subdivision Reports */}
+              {(minimalActiveReport === 'consolidated' || minimalActiveReport === 'subdivision') && (
+                <div className="report-slot-toggle" role="radiogroup" aria-label="Select Observation Report Slot">
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={reportSlot === '03Z'}
+                    className={`btn-slot-seg ${reportSlot === '03Z' ? 'active' : ''}`}
+                    onClick={() => handleReportSlotChange('03Z')}
+                    title="03Z Report (Previous day Tmax, current day Tmin, 0830 IST observations)"
+                  >
+                    03Z (0830 IST)
+                  </button>
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={reportSlot === '12Z'}
+                    className={`btn-slot-seg ${reportSlot === '12Z' ? 'active' : ''}`}
+                    onClick={() => handleReportSlotChange('12Z')}
+                    title="12Z Report (Current day Tmax, 03Z Tmin, 0830 & 1730 IST observations)"
+                  >
+                    12Z (1730 IST)
+                  </button>
+                </div>
+              )}
+
               <div className="minimal-report-actions">
                 <button
                   type="button"
@@ -1404,7 +1541,7 @@ export default function App() {
                   {getPrintReportTitle(minimalActiveReport)}
                 </div>
                 <div className="oph-meta">
-                  <span><strong>Observation Date:</strong> {reportsResult.reportingDate} (0830 IST)</span>
+                  <span><strong>Observation Date:</strong> {reportsResult.reportingDate} {reportSlot === '12Z' && minimalActiveReport !== 'summary' ? '(1730 IST)' : '(0830 IST)'}</span>
                 </div>
               </header>
             )}
@@ -1418,7 +1555,9 @@ export default function App() {
                       subdivisions={reportsResult.subdivisions}
                       reportingDate={reportsResult.reportingDate}
                       eveningDate={reportsResult.eveningDate}
+                      reportSlot={reportSlot}
                       isEditMode={isEditMode}
+                      showVisibility={showVisibility}
                       onUpdateStationValue={handleUpdateStationValue}
                     />
                   </div>
@@ -1439,7 +1578,9 @@ export default function App() {
                       subdivisions={reportsResult.subdivisions}
                       reportingDate={reportsResult.reportingDate}
                       eveningDate={reportsResult.eveningDate}
+                      reportSlot={reportSlot}
                       isEditMode={isEditMode}
+                      showVisibility={showVisibility}
                       onUpdateStationValue={handleUpdateStationValue}
                     />
                   </div>
@@ -1483,7 +1624,7 @@ export default function App() {
                 {getPrintReportTitle(activeReport)}
               </div>
               <div className="oph-meta">
-                <span><strong>Observation Date:</strong> {reportsResult.reportingDate} (0830 IST)</span>
+                <span><strong>Observation Date:</strong> {reportsResult.reportingDate} {reportSlot === '12Z' && activeReport !== 'summary' ? '(1730 IST)' : '(0830 IST)'}</span>
               </div>
             </header>
           )}
@@ -1531,12 +1672,15 @@ export default function App() {
             </section>
           )}
 
-          {/* Report View Toolbar (Print only) */}
+          {/* Report View Toolbar */}
           {reportsResult && (
             <ReportToolbar
               reportTitle={reportTitleMap[activeReport]}
               reportingDate={reportsResult.reportingDate}
               eveningDate={reportsResult.eveningDate}
+              reportSlot={reportSlot}
+              onReportSlotChange={handleReportSlotChange}
+              showSlotToggle={activeReport === 'consolidated' || activeReport === 'subdivision'}
               onPrint={handlePrint}
             />
           )}
@@ -1567,7 +1711,9 @@ export default function App() {
                 subdivisions={reportsResult.subdivisions}
                 reportingDate={reportsResult.reportingDate}
                 eveningDate={reportsResult.eveningDate}
+                reportSlot={reportSlot}
                 isEditMode={isEditMode}
+                showVisibility={showVisibility}
                 onUpdateStationValue={handleUpdateStationValue}
               />
             </div>
@@ -1590,7 +1736,9 @@ export default function App() {
                 subdivisions={reportsResult.subdivisions}
                 reportingDate={reportsResult.reportingDate}
                 eveningDate={reportsResult.eveningDate}
+                reportSlot={reportSlot}
                 isEditMode={isEditMode}
+                showVisibility={showVisibility}
                 onUpdateStationValue={handleUpdateStationValue}
               />
             </div>

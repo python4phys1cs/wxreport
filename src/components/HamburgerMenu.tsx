@@ -99,11 +99,13 @@ interface HamburgerMenuProps {
   onShowHeatWaveCountChange?: (enabled: boolean) => void;
   showColdWaveCount?: boolean;
   onShowColdWaveCountChange?: (enabled: boolean) => void;
+  showVisibility?: boolean;
+  onShowVisibilityChange?: (enabled: boolean) => void;
   allowHistoricalEdits?: boolean;
   onAllowHistoricalEditsChange?: (enabled: boolean) => void;
   syntaxHighlightingEnabled?: boolean;
   onSyntaxHighlightingEnabledChange?: (enabled: boolean) => void;
-  onDeleteAllData?: () => void;
+  onDeleteAllData?: () => Promise<void> | void;
   currentIdentity?: string | null;
   onLogout?: () => void;
   dbStatus?: { configured: boolean; healthy: boolean; provider: string; error?: string; datesCount?: number } | null;
@@ -141,6 +143,8 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
   onShowHeatWaveCountChange,
   showColdWaveCount = true,
   onShowColdWaveCountChange,
+  showVisibility = false,
+  onShowVisibilityChange,
   allowHistoricalEdits = false,
   onAllowHistoricalEditsChange,
   syntaxHighlightingEnabled = true,
@@ -157,6 +161,7 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
   const menuRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const [isPurging, setIsPurging] = useState<boolean>(false);
   const [deleteConfirmed, setDeleteConfirmed] = useState<boolean>(false);
   const [deleteInputText, setDeleteInputText] = useState<string>('');
 
@@ -404,6 +409,38 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
                   >
                     Disabled
                   </button>
+                </div>
+              </div>
+            )}
+
+            {/* Visibility Column in Reports */}
+            {onShowVisibilityChange && (
+              <div className="sidebar-setting-block">
+                <div className="setting-subhead">Visibility Column in Reports</div>
+                <div className="sidebar-segmented" role="radiogroup" aria-label="Visibility Column in Reports">
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={!showVisibility}
+                    className={`btn-seg ${!showVisibility ? 'active' : ''}`}
+                    onClick={() => onShowVisibilityChange(false)}
+                  >
+                    Disabled (Default)
+                  </button>
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={showVisibility}
+                    className={`btn-seg ${showVisibility ? 'active' : ''}`}
+                    onClick={() => onShowVisibilityChange(true)}
+                  >
+                    Enabled
+                  </button>
+                </div>
+                <div className="setting-help-text">
+                  {showVisibility
+                    ? 'Visibility column displayed in consolidated and subdivision-wise report tables.'
+                    : 'Visibility column hidden (default) to optimize print layout.'}
                 </div>
               </div>
             )}
@@ -894,10 +931,10 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
                       setDeleteConfirmed(false);
                       setDeleteInputText('');
                     }}
-                    title="Permanently remove all cached and stored station observations"
+                    title="Permanently remove all cached and stored station observations from local buffer and Supabase PostgreSQL database"
                   >
                     <span className="destructive-indicator-icon" aria-hidden="true">⚠️</span>
-                    <span>Delete All Stored Observations</span>
+                    <span>Delete All Stored Observations (Local & Supabase)</span>
                   </button>
                 ) : (
                   <div className="delete-confirm-box" role="alertdialog" aria-label="Confirm complete data purge">
@@ -906,7 +943,7 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
                       Confirm Permanent Data Purge
                     </div>
                     <div className="delete-confirm-text">
-                      Type <strong>DELETE</strong> below to permanently erase all {archiveDateCount} dates of stored observation history.
+                      Type <strong>DELETE</strong> below to permanently erase all {archiveDateCount} dates of stored observation history from both local buffer and Supabase PostgreSQL database. This allows you to start from a clean slate.
                     </div>
                     <input
                       type="text"
@@ -924,21 +961,27 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
                       <button
                         type="button"
                         className="btn btn-danger btn-xs"
-                        disabled={!deleteConfirmed}
-                        onClick={() => {
+                        disabled={!deleteConfirmed || isPurging}
+                        onClick={async () => {
                           if (deleteConfirmed && onDeleteAllData) {
-                            onDeleteAllData();
-                            setIsDeleting(false);
-                            setDeleteConfirmed(false);
-                            setDeleteInputText('');
+                            setIsPurging(true);
+                            try {
+                              await onDeleteAllData();
+                            } finally {
+                              setIsPurging(false);
+                              setIsDeleting(false);
+                              setDeleteConfirmed(false);
+                              setDeleteInputText('');
+                            }
                           }
                         }}
                       >
-                        Confirm Delete
+                        {isPurging ? 'Purging All Data...' : 'Confirm Delete (Clean Slate)'}
                       </button>
                       <button
                         type="button"
                         className="btn btn-secondary btn-xs"
+                        disabled={isPurging}
                         onClick={() => {
                           setIsDeleting(false);
                           setDeleteConfirmed(false);

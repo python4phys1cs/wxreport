@@ -4,6 +4,7 @@
  */
 
 import React from 'react';
+import type { UtcSlot } from '../engine/observationStore.ts';
 import { formatOperationalDate } from '../utils/timeSlot.ts';
 
 interface ReportToolbarProps {
@@ -11,6 +12,9 @@ interface ReportToolbarProps {
   reportingDate: string;
   eveningDate?: string;
   onPrint: () => void;
+  reportSlot?: UtcSlot;
+  onReportSlotChange?: (slot: UtcSlot) => void;
+  showSlotToggle?: boolean;
 }
 
 export const ReportToolbar: React.FC<ReportToolbarProps> = ({
@@ -18,6 +22,9 @@ export const ReportToolbar: React.FC<ReportToolbarProps> = ({
   reportingDate,
   eveningDate,
   onPrint,
+  reportSlot = '03Z',
+  onReportSlotChange,
+  showSlotToggle = false,
 }) => {
   return (
     <div className="report-toolbar no-print" aria-label={`${reportTitle} Actions`}>
@@ -30,6 +37,31 @@ export const ReportToolbar: React.FC<ReportToolbarProps> = ({
       </div>
 
       <div className="toolbar-actions">
+        {showSlotToggle && onReportSlotChange && (
+          <div className="report-slot-toggle" role="radiogroup" aria-label="Select Report Issue Slot">
+            <button
+              type="button"
+              role="radio"
+              aria-checked={reportSlot === '03Z'}
+              className={`btn-slot-seg ${reportSlot === '03Z' ? 'active' : ''}`}
+              onClick={() => onReportSlotChange('03Z')}
+              title="03Z Report (0830 IST Morning Issue)"
+            >
+              03Z (0830 IST)
+            </button>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={reportSlot === '12Z'}
+              className={`btn-slot-seg ${reportSlot === '12Z' ? 'active' : ''}`}
+              onClick={() => onReportSlotChange('12Z')}
+              title="12Z Report (1730 IST Evening Issue)"
+            >
+              12Z (1730 IST)
+            </button>
+          </div>
+        )}
+
         <button
           type="button"
           className="btn btn-primary btn-action"

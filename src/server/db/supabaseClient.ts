@@ -881,7 +881,13 @@ export class SupabaseObservationStoreService {
    * Purges all observations from PostgreSQL (guarded operation).
    */
   async clearAll(): Promise<void> {
-    await this.client.from('station_observations').delete().neq('station_id', '__never__');
-    await this.client.from('raw_bulletins').delete().neq('utc_slot', '__never__');
+    const { error: err1 } = await this.client.from('station_observations').delete().neq('station_id', '__never__');
+    if (err1) throw new Error(`Failed to clear station_observations: ${err1.message}`);
+
+    const { error: err2 } = await this.client.from('raw_bulletins').delete().neq('utc_slot', '__never__');
+    if (err2) throw new Error(`Failed to clear raw_bulletins: ${err2.message}`);
+
+    const { error: err3 } = await this.client.from('historical_observations').delete().neq('station_id', '__never__');
+    if (err3) throw new Error(`Failed to clear historical_observations: ${err3.message}`);
   }
 }

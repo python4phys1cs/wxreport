@@ -279,4 +279,64 @@ describe('Station Names in Backups & Operational Authentication Suite', () => {
       assert.equal(authClient.getStoredIdentity(), null);
     });
   });
+
+  describe('3. Clean Slate Purge & Supabase ClearAll Invariants', () => {
+    it('SupabaseObservationStoreService.clearAll deletes from station_observations, raw_bulletins, and historical_observations', async () => {
+      const deletedTables: string[] = [];
+      const mockClient: any = {
+        from: (table: string) => {
+          return {
+            delete: () => {
+              return {
+                neq: (col: string, val: string) => {
+                  deletedTables.push(table);
+                  return Promise.resolve({ error: null });
+                },
+              };
+            },
+          };
+        },
+      };
+
+      const { SupabaseObservationStoreService } = await import('../server/db/supabaseClient.ts');
+      const service = new SupabaseObservationStoreService(mockClient);
+      await service.clearAll();
+
+      assert.deepEqual(deletedTables, [
+        'station_observations',
+        'raw_bulletins',
+        'historical_observations',
+      ]);
+    });
+
+    it('SupabaseObservationStoreService.clearAll propagates database errors if delete fails', async () => {
+      const mockClient: any = {
+        from: (table: string) => {
+          return {
+            delete: () => {
+              return {
+                neq: () => {
+                  if (table === 'station_observations') {
+                    return Promise.resolve({ error: { message: 'permission denied for relation station_observations' } });
+                  }
+                  return Promise.resolve({ error: null });
+                },
+              };
+            },
+          };
+        },
+      };
+
+      const { SupabaseObservationStoreService } = await import('../server/db/supabaseClient.ts');
+      const service = new SupabaseObservationStoreService(mockClient);
+
+      await assert.rejects(
+        async () => {
+          await service.clearAll();
+        },
+        /Failed to clear station_observations: permission denied for relation station_observations/
+      );
+    });
+  });
 });
+

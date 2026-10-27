@@ -4,6 +4,7 @@
  */
 
 import type { UtcSlot } from '../engine/observationStore.ts';
+export type { UtcSlot };
 import { getKolkataCalendarDetails } from '../engine/climatology.ts';
 
 /**
@@ -149,6 +150,16 @@ export function getAutoUtcSlot(dateInput: Date = new Date()): UtcSlot | null {
   }
 
   return null;
+}
+
+/**
+ * Automatically determines the default operational report slot:
+ * - Till 14:00 IST (< 14:00): 03Z report by default
+ * - At or after 14:00 IST (>= 14:00): 12Z report by default
+ */
+export function getDefaultReportSlot(dateInput: Date = new Date()): UtcSlot {
+  const { hour } = getKolkataTimeComponents(dateInput);
+  return hour >= 14 ? '12Z' : '03Z';
 }
 
 /**

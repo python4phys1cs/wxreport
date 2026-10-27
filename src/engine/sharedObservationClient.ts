@@ -242,7 +242,7 @@ export class SharedObservationClient {
   /**
    * Clears database and local store after user confirmation.
    */
-  async clearAll(confirmation: string): Promise<void> {
+  async clearAll(confirmation: string = 'DELETE'): Promise<void> {
     const res = await fetch('/api/observations', {
       method: 'DELETE',
       headers: this.getHeaders(),

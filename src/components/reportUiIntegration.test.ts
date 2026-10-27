@@ -1089,16 +1089,17 @@ describe('UI Report Pipeline Integration Suite', () => {
       assert.equal(gondiaRow.rainfall0830, null);
       assert.equal(gondiaRow.rainfall1730, 8.4);
 
-      // Render Subdivision-wise report HTML
+      // Render Subdivision-wise report HTML in 12Z mode
       const htmlSubdivision = renderToStaticMarkup(
         React.createElement(Report3SubdivisionView, {
           subdivisions: report.subdivisions,
           reportingDate: date,
           eveningDate: '2026-10-08',
+          reportSlot: '12Z',
         })
       );
 
-      // Check subcolumn headers
+      // Check subcolumn headers in 12Z mode
       assert.ok(htmlSubdivision.includes('Last 24 Hours up to 0830 hrs IST'));
       assert.ok(htmlSubdivision.includes('Last 9 Hours up to 1730 hrs IST'));
       assert.ok(htmlSubdivision.includes('class="col-rain-sub"'));
@@ -1110,6 +1111,20 @@ describe('UI Report Pipeline Integration Suite', () => {
 
       // Check missing data formatted as '---'
       assert.ok(htmlSubdivision.includes('---'));
+
+      // Render Subdivision-wise report HTML in 03Z mode to verify 1730 columns are hidden
+      const htmlSubdivision03Z = renderToStaticMarkup(
+        React.createElement(Report3SubdivisionView, {
+          subdivisions: report.subdivisions,
+          reportingDate: date,
+          eveningDate: '2026-10-08',
+          reportSlot: '03Z',
+        })
+      );
+
+      // Verify 1730 columns are hidden in 03Z mode
+      assert.ok(!htmlSubdivision03Z.includes('Last 9 Hours up to 1730 hrs IST'));
+      assert.ok(!htmlSubdivision03Z.includes('at 1730 IST'));
     });
   });
 
@@ -1288,6 +1303,141 @@ describe('UI Report Pipeline Integration Suite', () => {
       // Verify parentheticals are stripped from summary labels
       assert.ok(!html.includes('(MBN)'));
       assert.ok(!html.includes('(WS)'));
+    });
+  });
+
+  describe('30. Date Row and Configurable Visibility Column in Consolidated and Subdivision Reports', () => {
+    const dummySubdivisions = [
+      {
+        subdivision: { id: '26', name: 'VIDARBHA' },
+        report1Rows: [
+          {
+            stationId: '42867',
+            stationName: 'Nagpur',
+            tmax: 34.0,
+            tmaxChange24h: 0.5,
+            tmaxDeparture: 1.0,
+            tmin: 22.0,
+            tminChange24h: -0.2,
+            tminDeparture: -0.5,
+            rh0830: 65,
+            rh1730: 50,
+            visibilityText: '4000m',
+            rainfall: 0.0,
+            rainfall0830: 0.0,
+            rainfall1730: 0.0,
+            rainfallColor: 'white',
+          },
+        ],
+        report2Summary: {
+          highestTmax: { value: 34.0, stationNames: 'Nagpur', formattedText: '34.0 at Nagpur' },
+          lowestTmin: { value: 22.0, stationNames: 'Nagpur', formattedText: '22.0 at Nagpur' },
+          heaviestRainfall: { value: 0.0, stationNames: '', formattedText: '0.0 mm' },
+        },
+        reportingStationsCount: 1,
+        stationInputs: [],
+      },
+    ];
+
+    it('renders Date Row in Report1StationTable with yesterday and today observation dates', async () => {
+      const { Report1StationTable } = await import('./Report1StationTable.tsx');
+      const html = renderToStaticMarkup(
+        React.createElement(Report1StationTable, {
+          subdivisions: dummySubdivisions as any,
+          reportingDate: '2026-10-25',
+          eveningDate: '2026-10-24',
+          reportSlot: '03Z',
+          showVisibility: false,
+        })
+      );
+
+      // Verify date row presence
+      assert.ok(html.includes('header-date-row'));
+      assert.ok(html.includes('Observed on 2026-10-24'));
+      assert.ok(html.includes('Observed on 2026-10-25'));
+      // Yesterday date row spans 3 columns (Max, 24h Chg, Dep)
+      assert.match(html, /<th[^>]*colspan="3"[^>]*>Observed on 2026-10-24<\/th>/i);
+      // In 03Z without visibility: remaining columns = 3 (Min) + 1 (RH) + 1 (Rainfall) = 5
+      assert.match(html, /<th[^>]*colspan="5"[^>]*>Observed on 2026-10-25<\/th>/i);
+      // Visibility column header and cell are omitted by default
+      assert.ok(!html.includes('>Visibility<'));
+      assert.ok(!html.includes('4000m'));
+    });
+
+    it('renders Visibility column in Report1StationTable when showVisibility is enabled', async () => {
+      const { Report1StationTable } = await import('./Report1StationTable.tsx');
+      const html = renderToStaticMarkup(
+        React.createElement(Report1StationTable, {
+          subdivisions: dummySubdivisions as any,
+          reportingDate: '2026-10-25',
+          eveningDate: '2026-10-24',
+          reportSlot: '03Z',
+          showVisibility: true,
+        })
+      );
+
+      // Visibility column header and cell are now present
+      assert.ok(html.includes('>Visibility<'));
+      assert.ok(html.includes('4000m'));
+      // In 03Z with visibility: remaining columns = 3 (Min) + 1 (RH) + 1 (Vis) + 1 (Rainfall) = 6
+      assert.match(html, /<th[^>]*colspan="6"[^>]*>Observed on 2026-10-25<\/th>/i);
+    });
+
+    it('adapts Date Row and Visibility column in 12Z report mode', async () => {
+      const { Report1StationTable } = await import('./Report1StationTable.tsx');
+      const html12ZNoVis = renderToStaticMarkup(
+        React.createElement(Report1StationTable, {
+          subdivisions: dummySubdivisions as any,
+          reportingDate: '2026-10-25',
+          eveningDate: '2026-10-24',
+          reportSlot: '12Z',
+          showVisibility: false,
+        })
+      );
+      // In 12Z without visibility: remaining columns = 3 (Min) + 2 (RH) + 2 (Rainfall) = 7
+      assert.match(html12ZNoVis, /<th[^>]*colspan="7"[^>]*>Observed on 2026-10-25<\/th>/i);
+
+      const html12ZWithVis = renderToStaticMarkup(
+        React.createElement(Report1StationTable, {
+          subdivisions: dummySubdivisions as any,
+          reportingDate: '2026-10-25',
+          eveningDate: '2026-10-24',
+          reportSlot: '12Z',
+          showVisibility: true,
+        })
+      );
+      // In 12Z with visibility: remaining columns = 3 (Min) + 2 (RH) + 1 (Vis) + 2 (Rainfall) = 8
+      assert.match(html12ZWithVis, /<th[^>]*colspan="8"[^>]*>Observed on 2026-10-25<\/th>/i);
+    });
+
+    it('renders Date Row and respects showVisibility in Report3SubdivisionView', async () => {
+      const { Report3SubdivisionView } = await import('./Report3SubdivisionView.tsx');
+      const htmlNoVis = renderToStaticMarkup(
+        React.createElement(Report3SubdivisionView, {
+          subdivisions: dummySubdivisions as any,
+          reportingDate: '2026-10-25',
+          eveningDate: '2026-10-24',
+          reportSlot: '03Z',
+          showVisibility: false,
+        })
+      );
+      assert.ok(htmlNoVis.includes('header-date-row'));
+      assert.ok(htmlNoVis.includes('Observed on 2026-10-24'));
+      assert.ok(htmlNoVis.includes('Observed on 2026-10-25'));
+      assert.ok(!htmlNoVis.includes('>Visibility<'));
+      assert.ok(!htmlNoVis.includes('4000m'));
+
+      const htmlWithVis = renderToStaticMarkup(
+        React.createElement(Report3SubdivisionView, {
+          subdivisions: dummySubdivisions as any,
+          reportingDate: '2026-10-25',
+          eveningDate: '2026-10-24',
+          reportSlot: '03Z',
+          showVisibility: true,
+        })
+      );
+      assert.ok(htmlWithVis.includes('>Visibility<'));
+      assert.ok(htmlWithVis.includes('4000m'));
     });
   });
 });

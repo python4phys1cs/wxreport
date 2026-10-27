@@ -1209,6 +1209,43 @@ body {
   font-size: 0.75rem;
 }
 
+/* Operational 03Z / 12Z Report Slot Toggle */
+.report-slot-toggle {
+  display: inline-flex;
+  align-items: center;
+  background-color: var(--bg-header);
+  border: 1px solid var(--border-light);
+  border-radius: 4px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.btn-slot-seg {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.25rem 0.625rem;
+  border-radius: 3px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  white-space: nowrap;
+}
+
+.btn-slot-seg:hover:not(.active) {
+  color: var(--text-main);
+  background-color: var(--bg-hover);
+}
+
+.btn-slot-seg.active {
+  background-color: var(--accent-primary);
+  color: #ffffff;
+  border-color: var(--accent-primary);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
 /* ==========================================================================
    Report Tables & Sections
    ========================================================================== */
@@ -1268,6 +1305,30 @@ body {
 
 .op-table thead tr:first-child th {
   border-bottom: 1.5px solid var(--border-dark);
+}
+
+.op-table thead tr.header-date-row th,
+.header-date-cell {
+  background-color: #ffffff;
+  font-weight: 700;
+  font-size: 0.6875rem;
+  color: var(--text-main);
+  text-align: center;
+  padding: 0.25rem 0.375rem;
+  border-top: 1px solid var(--border-table);
+  border-bottom: 1.5px solid var(--border-dark);
+  letter-spacing: 0.02em;
+}
+
+@media print {
+  .op-table thead tr.header-date-row th,
+  .header-date-cell {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    border-color: #000000 !important;
+    font-size: 7pt !important;
+    padding: 2px 4px !important;
+  }
 }
 
 .op-table th.col-station,
