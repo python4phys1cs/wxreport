@@ -31,11 +31,11 @@ describe('Station Registry & Metadata Suite', () => {
     '42715', '42865'
   ];
 
-  it('contains exactly 77 canonical stations with no duplicate IDs', () => {
-    assert.equal(CANONICAL_STATIONS.length, 77);
+  it('contains exactly 79 canonical stations with no duplicate IDs', () => {
+    assert.equal(CANONICAL_STATIONS.length, 79);
     const ids = CANONICAL_STATIONS.map((s) => s.id);
     const uniqueIds = new Set(ids);
-    assert.equal(uniqueIds.size, 77, 'All 77 station IDs must be unique');
+    assert.equal(uniqueIds.size, 79, 'All 79 station IDs must be unique');
   });
 
   it('represents all 77 operational station IDs', () => {
@@ -48,7 +48,7 @@ describe('Station Registry & Metadata Suite', () => {
 
   it('verifies station counts by subdivision', () => {
     const wmp = getStationsBySubdivision('19');
-    assert.equal(wmp.length, 18, 'West MP must contain 18 stations');
+    assert.equal(wmp.length, 20, 'West MP must contain 18 active stations + 2 disabled stations (Bhind, Ashoknagar)');
 
     const emp = getStationsBySubdivision('20');
     assert.equal(emp.length, 15, 'East MP must contain 15 stations (including 42715)');
@@ -69,15 +69,16 @@ describe('Station Registry & Metadata Suite', () => {
     assert.equal(kg.length, 7, 'Konkan & Goa must contain 7 stations');
 
     const total = wmp.length + emp.length + vid.length + cht.length + mar.length + mm.length + kg.length;
-    assert.equal(total, 77);
+    assert.equal(total, 79);
   });
 
   it('preserves exact legacy web report station ordering', () => {
-    // West MP (19) exact array order from observations_include_fast.php
+    // West MP (19) exact array order from observations_include_fast.php plus disabled stations
     const wmpExpected = [
       '42860', '42667', '42460', '42752', '42559', '42361',
       '42763', '42754', '42855', '42849', '42767', '42672',
-      '42557', '42661', '42665', '42456', '42459', '42662'
+      '42557', '42661', '42665', '42456', '42459', '42662',
+      '42358', '42558'
     ];
     const wmpActual = getStationsBySubdivision('19').map((s) => s.id);
     assert.deepEqual(wmpActual, wmpExpected);
@@ -107,18 +108,24 @@ describe('Station Registry & Metadata Suite', () => {
     // Nagpur AWS 13301 must NOT exist
     assert.equal(getStation('13301'), undefined, 'Nagpur (AWS) 13301 must be absent');
 
-    // Non-AWS Nagpur 42937 must remain intact
-    const nagpur = getStation('42937');
-    assert.ok(nagpur, 'Nagpur 42937 must remain intact');
+    // Non-AWS Nagpur 42867 must remain intact
+    const nagpur = getStation('42867');
+    assert.ok(nagpur, 'Nagpur 42867 must remain intact');
     assert.equal(nagpur.name, 'Nagpur');
     assert.equal(nagpur.subdivisionId, '26');
+
+    // Amravati 42937 must remain intact
+    const amravati = getStation('42937');
+    assert.ok(amravati, 'Amravati 42937 must remain intact');
+    assert.equal(amravati.name, 'Amravati');
+    assert.equal(amravati.subdivisionId, '26');
   });
 
   it('supports special Vidarbha print report ordering variant', () => {
     const printOrdered = getStationsBySubdivision('26', 'print');
     assert.equal(printOrdered.length, 11, 'Vidarbha print order omits 13301');
     assert.deepEqual(printOrdered.map((s) => s.id), [...VIDARBHA_PRINT_REPORT_ORDER]);
-    assert.equal(printOrdered[0].id, '42867', 'First station in print order is Amravati (42867)');
+    assert.equal(printOrdered[0].id, '42867', 'First station in print order is Nagpur (42867)');
     assert.equal(printOrdered[7].id, '42933', 'Akola is 8th in print order');
   });
 
@@ -138,12 +145,28 @@ describe('Station Registry & Metadata Suite', () => {
 
   describe('Lookup helpers', () => {
     it('retrieves station metadata by valid ID', () => {
-      const nagpur = getStation('42937');
+      const nagpur = getStation('42867');
       assert.ok(nagpur);
       assert.equal(nagpur.name, 'Nagpur');
       assert.equal(nagpur.subdivisionId, '26');
       assert.equal(nagpur.subdivisionName, 'Vidarbha');
       assert.equal(nagpur.district, 'Nagpur');
+
+      const dhar = getStation('42752');
+      assert.ok(dhar);
+      assert.equal(dhar.name, 'Dhar');
+
+      const shajapur = getStation('42665');
+      assert.ok(shajapur);
+      assert.equal(shajapur.name, 'Shajapur');
+
+      const jabalpur = getStation('42675');
+      assert.ok(jabalpur);
+      assert.equal(jabalpur.name, 'Jabalpur');
+
+      const seoni = getStation('42771');
+      assert.ok(seoni);
+      assert.equal(seoni.name, 'Seoni');
     });
 
     it('returns undefined for non-existent station ID', () => {
@@ -155,7 +178,7 @@ describe('Station Registry & Metadata Suite', () => {
       assert.ok(sub);
       assert.equal(sub.name, 'West Madhya Pradesh');
       assert.equal(sub.code, 'WMP');
-      assert.equal(sub.stationIds.length, 18);
+      assert.equal(sub.stationIds.length, 20);
     });
 
     it('returns undefined for non-existent subdivision ID', () => {
@@ -167,7 +190,7 @@ describe('Station Registry & Metadata Suite', () => {
     });
 
     it('returns all canonical stations and subdivisions', () => {
-      assert.equal(getAllStations().length, 77);
+      assert.equal(getAllStations().length, 79);
       assert.equal(getAllSubdivisions().length, 7);
     });
   });

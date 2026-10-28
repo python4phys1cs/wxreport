@@ -247,7 +247,7 @@ describe('Operational Reporting Cycle & Persistence Semantics Regression Suite',
 
       // Export CSV and convert back
       const exportedCsv = convertArchiveToCsv(exportedJson);
-      assert.ok(exportedCsv.includes('Amravati'));
+      assert.ok(exportedCsv.includes('Nagpur'));
       assert.ok(exportedCsv.includes('44'));
 
       const parsedFromJson = parseCsvToArchive(exportedCsv);

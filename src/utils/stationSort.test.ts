@@ -62,13 +62,13 @@ describe('Operational Station Sorting & Report Subdivision Ordering', () => {
     const sortedNames = sorted.map((s) => s.stationName);
 
     // Alphabetical order for Vidarbha (12 canonical stations):
-    // Akola, Amravati, Bhandara, Brahmapuri, Buldhana, Chandrapur, Gadchiroli, Gondia, Nagpur, Wardha, Washim, Yavatmal
+    // Akola, Amravati, Bhandara, Brahmpuri, Buldana, Chandrapur, Gadchiroli, Gondia, Nagpur, Wardha, Washim, Yavatmal
     assert.deepEqual(sortedNames, [
       'Akola',
       'Amravati',
       'Bhandara',
-      'Brahmapuri',
-      'Buldhana',
+      'Brahmpuri',
+      'Buldana',
       'Chandrapur',
       'Gadchiroli',
       'Gondia',
@@ -89,8 +89,8 @@ describe('Operational Station Sorting & Report Subdivision Ordering', () => {
     const sorted = sortStationsAlphabetically(stationRows);
     const sortedNames = sorted.map((s) => s.stationName);
 
-    // 18 stations in West MP
-    assert.equal(sorted.length, 18);
+    // 20 stations registered in West MP (18 active + 2 disabled: Bhind, Ashoknagar)
+    assert.equal(sorted.length, 20);
     assert.equal(sortedNames[0], 'Ashoknagar');
     assert.equal(sortedNames[1], 'Betul');
     assert.equal(sortedNames[2], 'Bhind');
@@ -124,7 +124,7 @@ describe('Operational Station Sorting & Report Subdivision Ordering', () => {
 
   it('5. canonical station registry and subdivision assignments are unchanged', () => {
     const all = getAllStations();
-    assert.equal(all.length, 77);
+    assert.equal(all.length, 79);
 
     const vid = getSubdivision('26');
     assert.ok(vid);

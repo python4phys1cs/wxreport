@@ -63,26 +63,28 @@ function isTmaxDisplayable(
   persisted?: PersistedStationObservation | null,
   previousObservation?: PersistedStationObservation | null
 ): boolean {
-  if (utcSlot === '12Z') return true;
-  // Stateless execution (no observationStore provided):
-  if (persisted === undefined) {
-    return true;
+  if (utcSlot === '12Z') {
+    if (persisted === undefined) return true;
+    if (!persisted) return false;
+    return Boolean(
+      (persisted.tmax12Z !== null && persisted.tmax12Z !== undefined && !isNaN(persisted.tmax12Z)) ||
+      persisted.has12Z ||
+      persisted.tmaxSlot === '12Z' ||
+      persisted.manualEdits?.tmax
+    );
   }
-  // Store is provided but no record exists yet for current date:
+  // At 03Z:
+  if (persisted === undefined) return true;
   if (!persisted) {
     return Boolean(previousObservation?.tmax !== null && previousObservation?.tmax !== undefined);
   }
-  // Store record exists for current date:
-  const has12ZData = Boolean(
-    persisted.has12Z ||
-    persisted.tmaxSlot === '12Z' ||
-    persisted.manualEdits?.tmax
-  );
-  return (
-    has12ZData ||
-    (persisted.tmax !== null && persisted.tmax !== undefined) ||
-    Boolean(persisted.manualEdits?.tmax) ||
-    Boolean(previousObservation?.tmax !== null && previousObservation?.tmax !== undefined)
+  return Boolean(
+    (persisted.tmax03Z !== null && persisted.tmax03Z !== undefined && !isNaN(persisted.tmax03Z)) ||
+    (persisted.tmaxPreviousDay !== null && persisted.tmaxPreviousDay !== undefined && !isNaN(persisted.tmaxPreviousDay)) ||
+    (persisted.tmaxSlot === '03Z' && persisted.tmax !== null && persisted.tmax !== undefined && !isNaN(persisted.tmax)) ||
+    (!persisted.has12Z && persisted.tmax !== null && persisted.tmax !== undefined && !isNaN(persisted.tmax)) ||
+    persisted.manualEdits?.tmax ||
+    (previousObservation?.tmax !== null && previousObservation?.tmax !== undefined)
   );
 }
 
@@ -307,8 +309,22 @@ export function generateDailyReports(
       );
       const isTmaxAvailable = isTmaxDisplayable(utcSlot, persisted, prevEveningObs);
       const rawTmax = (utcSlot === '03Z')
-        ? (persisted?.tmax ?? prevEveningObs?.tmax ?? null)
-        : (persisted?.tmax ?? null);
+        ? (persisted
+            ? (persisted.tmax03Z ??
+               persisted.tmaxPreviousDay ??
+               prevEveningObs?.tmax12Z ??
+               prevEveningObs?.tmax ??
+               (persisted.tmaxSlot === '03Z' ? persisted.tmax : null) ??
+               (!persisted.has12Z && persisted.tmaxSlot !== '12Z' ? persisted.tmax : null) ??
+               null)
+            : (prevEveningObs?.tmax12Z ?? prevEveningObs?.tmax ?? null))
+        : (persisted
+            ? (persisted.tmax12Z ??
+               (persisted.tmaxSlot === '12Z' ? persisted.tmax : null) ??
+               (persisted.has12Z ? persisted.tmax : null) ??
+               (persisted.manualEdits?.tmax ? persisted.tmax : null) ??
+               null)
+            : null);
       const effectiveTmax = isTmaxAvailable ? rawTmax : null;
 
       let tmaxDep: string | null = null;
@@ -433,8 +449,24 @@ export function generateDailyReports(
       const prevEveningObs = options.observationStore?.getStationObservation(stnMeta.id, eveningDateStr);
       const isTmaxAvailable = isTmaxDisplayable(utcSlot, persisted, prevEveningObs);
       const rawTmax = (utcSlot === '03Z')
-        ? (persisted ? (persisted.tmax ?? prevEveningObs?.tmax ?? enriched?.tmax ?? null) : (enriched?.tmax ?? prevEveningObs?.tmax ?? null))
-        : (persisted ? persisted.tmax : (enriched?.tmax ?? null));
+        ? (persisted
+            ? (persisted.tmax03Z ??
+               persisted.tmaxPreviousDay ??
+               prevEveningObs?.tmax12Z ??
+               prevEveningObs?.tmax ??
+               (persisted.tmaxSlot === '03Z' ? persisted.tmax : null) ??
+               (!persisted.has12Z && persisted.tmaxSlot !== '12Z' ? persisted.tmax : null) ??
+               enriched?.tmax ??
+               null)
+            : (enriched?.tmax ?? prevEveningObs?.tmax12Z ?? prevEveningObs?.tmax ?? null))
+        : (persisted
+            ? (persisted.tmax12Z ??
+               (persisted.tmaxSlot === '12Z' ? persisted.tmax : null) ??
+               (persisted.has12Z ? persisted.tmax : null) ??
+               (persisted.manualEdits?.tmax ? persisted.tmax : null) ??
+               enriched?.tmax ??
+               null)
+            : (enriched?.tmax ?? null));
       const currentTmax = isTmaxAvailable ? rawTmax : null;
 
       const has12ZAvailable = Boolean(
@@ -562,8 +594,9 @@ export function recalculateReportsResult(
   normalProvider?: PentadNormalProvider
 ): OperationalReportsResult {
   const { month } = getKolkataCalendarDetails(currentResult.reportingDate);
+  const eveningDateStr = getPreviousDayDateString(currentResult.reportingDate);
   const pentadTmin = resolvePentad(currentResult.reportingDate, 'tmin');
-  const pentadTmax = resolvePentad(currentResult.reportingDate, 'tmax');
+  const pentadTmax = resolveTmaxPentad(currentResult.reportingDate, eveningDateStr, currentResult.utcSlot ?? '03Z');
 
   const updatedSubdivisions: SubdivisionReportData[] = currentResult.subdivisions.map((subData) => {
     // If no stationInputs stored, construct from report1Rows

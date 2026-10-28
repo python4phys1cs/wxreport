@@ -172,7 +172,7 @@ export const Report1StationTable: React.FC<Report1Props> = ({
               {!is03Z && <th>at 1730 IST</th>}
             </tr>
             <tr className="header-date-row">
-              <th colSpan={3} className="header-date-cell">Observed on {yesterdayDate}</th>
+              <th colSpan={3} className="header-date-cell">Observed on {is03Z ? yesterdayDate : todayDate}</th>
               <th
                 colSpan={3 + (is03Z ? 1 : 2) + (showVisibility ? 1 : 0) + (is03Z ? 1 : 2)}
                 className="header-date-cell"

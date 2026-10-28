@@ -156,9 +156,9 @@ describe('Table Edits Consistency, Persistence, and Traceability', () => {
     // 2. Check Report 2 subdivision summary: highest max temp and heaviest rainfall must update
     const recSummary = recVidarbha.report2Summary;
     assert.equal(recSummary.highestTmax.value, 46.5);
-    assert.ok(recSummary.highestTmax.stationNames.includes('Amravati'));
+    assert.ok(recSummary.highestTmax.stationNames.includes('Nagpur'));
     assert.equal(recSummary.heaviestRainfall.value, 55.0);
-    assert.ok(recSummary.heaviestRainfall.stationNames.includes('Amravati'));
+    assert.ok(recSummary.heaviestRainfall.stationNames.includes('Nagpur'));
 
     // 3. Check enriched observations
     const recEnriched = recalculated.enrichedObservations.find((o) => o.stationId === '42867');

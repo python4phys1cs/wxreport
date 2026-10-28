@@ -574,9 +574,9 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
                   <div className="station-inclusion-summary">
                     {CANONICAL_STATIONS.filter((s) => stationInclusion[s.id] !== false).length} included &bull;{' '}
                     {CANONICAL_STATIONS.filter((s) => stationInclusion[s.id] === false).length} excluded
-                    {stationInclusion['42665'] === false && (
+                    {(stationInclusion['42358'] === false || stationInclusion['42558'] === false) && (
                       <span style={{ display: 'block', fontSize: '0.625rem', color: 'var(--text-muted)' }}>
-                        (Ashoknagar 42665 excluded by default)
+                        (Bhind and Ashoknagar excluded by default)
                       </span>
                     )}
                   </div>
@@ -615,7 +615,7 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
                             className="btn btn-secondary btn-xs"
                             disabled={!isStationInclusionUnlocked}
                             onClick={onResetStationInclusion}
-                            title="Reset station inclusion to standard defaults (Ashoknagar 42665 excluded)"
+                            title="Reset station inclusion to standard defaults (Bhind and Ashoknagar excluded)"
                           >
                             Reset Defaults
                           </button>

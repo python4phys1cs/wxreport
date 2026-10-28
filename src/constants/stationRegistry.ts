@@ -7,7 +7,7 @@
  * Metadata contract for a meteorological station.
  */
 export interface StationMetadata {
-  /** WMO 5-digit station code or AWS ID (e.g. "42937") */
+  /** WMO 5-digit station code or AWS ID (e.g. "42867") */
   readonly id: string;
   /** Observatory display name */
   readonly name: string;
@@ -17,6 +17,8 @@ export interface StationMetadata {
   readonly subdivisionName: string;
   /** District name (where explicitly documented in legacy source) */
   readonly district?: string;
+  /** Alternative name spellings or aliases */
+  readonly aliases?: readonly string[];
   /** Known legacy discrepancies across PHP files */
   readonly legacyNotes?: string;
 }
@@ -44,7 +46,7 @@ export const LEGACY_STATION_INCONSISTENCIES = {
   STATION_13301:
     'Station 13301 is included in observations_include_fast.php (Vidarbha) and observations_report_include_fast.php, but omitted in observations_print_include_fast.php (opfast_stations_for) and observations_report_print_include_fast.php (orpfast_stations_for).',
   VIDARBHA_PRINT_ORDER:
-    'Vidarbha stations in web views begin with 42933 (Akola), whereas observations_report_print_include_fast.php (orpfast_stations_for) begins with 42867 (Amravati) and reorders the list.',
+    'Vidarbha stations in web views begin with 42933 (Akola), whereas observations_report_print_include_fast.php (orpfast_stations_for) begins with 42867 (Nagpur) and reorders the list.',
 } as const;
 
 /**
@@ -57,14 +59,13 @@ export const VIDARBHA_PRINT_REPORT_ORDER: readonly string[] = Object.freeze([
 
 /**
  * Authoritative Allowlist for the four operational subdivisions:
- * Vidarbha (12), West Madhya Pradesh (18), East Madhya Pradesh (15), and Chhattisgarh (8).
- * Total allowlisted stations: 53.
+ * Vidarbha (12), West Madhya Pradesh (18 + 2 disabled), East Madhya Pradesh (15), and Chhattisgarh (8).
  */
 export const AUTHORITATIVE_STATION_ALLOWLIST: readonly string[] = Object.freeze([
   // Vidarbha (12)
   '42933', '42937', '42865', '42931', '42946', '43029', '42947', '42871', '42867', '42939', '42935', '42943',
-  // West Madhya Pradesh (18)
-  '42860', '42667', '42460', '42752', '42559', '42361', '42763', '42754', '42855', '42849', '42767', '42672', '42557', '42661', '42665', '42456', '42459', '42662',
+  // West Madhya Pradesh (18 active + 2 disabled)
+  '42860', '42667', '42460', '42752', '42559', '42361', '42763', '42754', '42855', '42849', '42767', '42672', '42557', '42661', '42665', '42456', '42459', '42662', '42358', '42558',
   // East Madhya Pradesh (15)
   '42768', '42674', '42675', '42567', '42776', '42770', '42467', '42574', '42671', '42571', '42771', '42577', '42562', '42679', '42715',
   // Chhattisgarh (8)
@@ -82,40 +83,41 @@ export function isAllowlistedStation(stationId: string): boolean {
 }
 
 /**
- * All 77 canonical stations across the 7 meteorological subdivisions
+ * All canonical stations across the 7 meteorological subdivisions
  * covered by RMC Nagpur's AMSS ingestion and reporting system.
  */
 export const CANONICAL_STATIONS: readonly StationMetadata[] = Object.freeze([
   // ==========================================
-  // Subdivision 19: West Madhya Pradesh (18 stations)
-  // Source: observations_include_fast.php & synop_entry_03utc.php
+  // Subdivision 19: West Madhya Pradesh (18 active stations + 2 disabled by default)
   // ==========================================
   { id: '42860', name: 'Betul', subdivisionId: '19', subdivisionName: 'West Madhya Pradesh', district: 'Betul' },
-  { id: '42667', name: 'Raisen', subdivisionId: '19', subdivisionName: 'West Madhya Pradesh', district: 'Raisen' },
+  { id: '42667', name: 'Bhopal', subdivisionId: '19', subdivisionName: 'West Madhya Pradesh', district: 'Bhopal' },
   { id: '42460', name: 'Datia', subdivisionId: '19', subdivisionName: 'West Madhya Pradesh', district: 'Datia' },
-  { id: '42752', name: 'Bhind', subdivisionId: '19', subdivisionName: 'West Madhya Pradesh', district: 'Bhind' },
+  { id: '42752', name: 'Dhar', subdivisionId: '19', subdivisionName: 'West Madhya Pradesh', district: 'Dhar' },
   { id: '42559', name: 'Guna', subdivisionId: '19', subdivisionName: 'West Madhya Pradesh', district: 'Guna' },
   { id: '42361', name: 'Gwalior', subdivisionId: '19', subdivisionName: 'West Madhya Pradesh', district: 'Gwalior' },
   { id: '42763', name: 'Hoshangabad', subdivisionId: '19', subdivisionName: 'West Madhya Pradesh', district: 'Hoshangabad' },
   { id: '42754', name: 'Indore', subdivisionId: '19', subdivisionName: 'West Madhya Pradesh', district: 'Indore' },
   { id: '42855', name: 'Khandwa', subdivisionId: '19', subdivisionName: 'West Madhya Pradesh', district: 'Khandwa' },
-  { id: '42849', name: 'Morena', subdivisionId: '19', subdivisionName: 'West Madhya Pradesh', district: 'Morena' },
-  { id: '42767', name: 'Neemuch', subdivisionId: '19', subdivisionName: 'West Madhya Pradesh', district: 'Neemuch' },
-  { id: '42672', name: 'Bhopal', subdivisionId: '19', subdivisionName: 'West Madhya Pradesh', district: 'Bhopal' },
+  { id: '42849', name: 'Khargone', subdivisionId: '19', subdivisionName: 'West Madhya Pradesh', district: 'Khargone' },
+  { id: '42767', name: 'Panchmarhi', subdivisionId: '19', subdivisionName: 'West Madhya Pradesh', district: 'Hoshangabad', aliases: ['Pachmarhi'] },
+  { id: '42672', name: 'Raisen', subdivisionId: '19', subdivisionName: 'West Madhya Pradesh', district: 'Raisen' },
   { id: '42557', name: 'Rajgarh', subdivisionId: '19', subdivisionName: 'West Madhya Pradesh', district: 'Rajgarh' },
-  { id: '42661', name: 'Shajapur', subdivisionId: '19', subdivisionName: 'West Madhya Pradesh', district: 'Shajapur' },
-  { id: '42665', name: 'Ashoknagar', subdivisionId: '19', subdivisionName: 'West Madhya Pradesh', district: 'Ashoknagar' },
+  { id: '42661', name: 'Ratlam', subdivisionId: '19', subdivisionName: 'West Madhya Pradesh', district: 'Ratlam' },
+  { id: '42665', name: 'Shajapur', subdivisionId: '19', subdivisionName: 'West Madhya Pradesh', district: 'Shajapur' },
   { id: '42456', name: 'Sheopur', subdivisionId: '19', subdivisionName: 'West Madhya Pradesh', district: 'Sheopur' },
   { id: '42459', name: 'Shivpuri', subdivisionId: '19', subdivisionName: 'West Madhya Pradesh', district: 'Shivpuri' },
   { id: '42662', name: 'Ujjain', subdivisionId: '19', subdivisionName: 'West Madhya Pradesh', district: 'Ujjain' },
+  // Non-synoptic stations excluded from operational reports by default:
+  { id: '42358', name: 'Bhind', subdivisionId: '19', subdivisionName: 'West Madhya Pradesh', district: 'Bhind' },
+  { id: '42558', name: 'Ashoknagar', subdivisionId: '19', subdivisionName: 'West Madhya Pradesh', district: 'Ashoknagar' },
 
   // ==========================================
   // Subdivision 20: East Madhya Pradesh (15 stations)
-  // Source: observations_include_fast.php & synop_entry_03utc.php
   // ==========================================
   { id: '42768', name: 'Chhindwara', subdivisionId: '20', subdivisionName: 'East Madhya Pradesh', district: 'Chhindwara' },
   { id: '42674', name: 'Damoh', subdivisionId: '20', subdivisionName: 'East Madhya Pradesh', district: 'Damoh' },
-  { id: '42675', name: 'Seoni', subdivisionId: '20', subdivisionName: 'East Madhya Pradesh', district: 'Seoni' },
+  { id: '42675', name: 'Jabalpur', subdivisionId: '20', subdivisionName: 'East Madhya Pradesh', district: 'Jabalpur' },
   { id: '42567', name: 'Khajuraho', subdivisionId: '20', subdivisionName: 'East Madhya Pradesh', district: 'Chhatarpur' },
   { id: '42776', name: 'Mandla', subdivisionId: '20', subdivisionName: 'East Madhya Pradesh', district: 'Mandla' },
   { id: '42770', name: 'Narsinghpur', subdivisionId: '20', subdivisionName: 'East Madhya Pradesh', district: 'Narsinghpur' },
@@ -123,7 +125,7 @@ export const CANONICAL_STATIONS: readonly StationMetadata[] = Object.freeze([
   { id: '42574', name: 'Rewa', subdivisionId: '20', subdivisionName: 'East Madhya Pradesh', district: 'Rewa' },
   { id: '42671', name: 'Sagar', subdivisionId: '20', subdivisionName: 'East Madhya Pradesh', district: 'Sagar' },
   { id: '42571', name: 'Satna', subdivisionId: '20', subdivisionName: 'East Madhya Pradesh', district: 'Satna' },
-  { id: '42771', name: 'Jabalpur', subdivisionId: '20', subdivisionName: 'East Madhya Pradesh', district: 'Jabalpur' },
+  { id: '42771', name: 'Seoni', subdivisionId: '20', subdivisionName: 'East Madhya Pradesh', district: 'Seoni' },
   { id: '42577', name: 'Sidhi', subdivisionId: '20', subdivisionName: 'East Madhya Pradesh', district: 'Sidhi' },
   { id: '42562', name: 'Tikamgarh', subdivisionId: '20', subdivisionName: 'East Madhya Pradesh', district: 'Tikamgarh' },
   { id: '42679', name: 'Umaria', subdivisionId: '20', subdivisionName: 'East Madhya Pradesh', district: 'Umaria' },
@@ -138,30 +140,28 @@ export const CANONICAL_STATIONS: readonly StationMetadata[] = Object.freeze([
 
   // ==========================================
   // Subdivision 26: Vidarbha (12 stations)
-  // Source: observations_include_fast.php & synop_entry_03utc.php
   // ==========================================
   { id: '42933', name: 'Akola', subdivisionId: '26', subdivisionName: 'Vidarbha', district: 'Akola' },
-  { id: '42937', name: 'Nagpur', subdivisionId: '26', subdivisionName: 'Vidarbha', district: 'Nagpur' },
+  { id: '42937', name: 'Amravati', subdivisionId: '26', subdivisionName: 'Vidarbha', district: 'Amravati' },
   { id: '42865', name: 'Bhandara', subdivisionId: '26', subdivisionName: 'Vidarbha', district: 'Bhandara' },
-  { id: '42931', name: 'Buldhana', subdivisionId: '26', subdivisionName: 'Vidarbha', district: 'Buldhana' },
-  { id: '42946', name: 'Brahmapuri', subdivisionId: '26', subdivisionName: 'Vidarbha', district: 'Chandrapur' },
+  { id: '42931', name: 'Buldana', subdivisionId: '26', subdivisionName: 'Vidarbha', district: 'Buldhana', aliases: ['Buldhana'] },
+  { id: '42946', name: 'Brahmpuri', subdivisionId: '26', subdivisionName: 'Vidarbha', district: 'Chandrapur', aliases: ['Brahmapuri'] },
   { id: '43029', name: 'Chandrapur', subdivisionId: '26', subdivisionName: 'Vidarbha', district: 'Chandrapur' },
   { id: '42947', name: 'Gadchiroli', subdivisionId: '26', subdivisionName: 'Vidarbha', district: 'Gadchiroli' },
   { id: '42871', name: 'Gondia', subdivisionId: '26', subdivisionName: 'Vidarbha', district: 'Gondia' },
-  { id: '42867', name: 'Amravati', subdivisionId: '26', subdivisionName: 'Vidarbha', district: 'Amravati' },
+  { id: '42867', name: 'Nagpur', subdivisionId: '26', subdivisionName: 'Vidarbha', district: 'Nagpur' },
   { id: '42939', name: 'Wardha', subdivisionId: '26', subdivisionName: 'Vidarbha', district: 'Wardha' },
   { id: '42935', name: 'Washim', subdivisionId: '26', subdivisionName: 'Vidarbha', district: 'Washim' },
   { id: '42943', name: 'Yavatmal', subdivisionId: '26', subdivisionName: 'Vidarbha', district: 'Yavatmal' },
 
   // ==========================================
   // Subdivision 27: Chattisgarh (8 stations)
-  // Source: observations_include_fast.php & synop_entry_03utc.php
   // ==========================================
   { id: '42693', name: 'Ambikapur', subdivisionId: '27', subdivisionName: 'Chattisgarh', district: 'Surguja' },
   { id: '42782', name: 'Bilaspur', subdivisionId: '27', subdivisionName: 'Chattisgarh', district: 'Bilaspur' },
   { id: '42876', name: 'Durg', subdivisionId: '27', subdivisionName: 'Chattisgarh', district: 'Durg' },
   { id: '43041', name: 'Jagdalpur', subdivisionId: '27', subdivisionName: 'Chattisgarh', district: 'Bastar' },
-  { id: '42872', name: 'Raipur (Mana)', subdivisionId: '27', subdivisionName: 'Chattisgarh', district: 'Raipur' },
+  { id: '42872', name: 'Raipur (Mana)', subdivisionId: '27', subdivisionName: 'Chattisgarh', district: 'Raipur', aliases: ['Raipur(Mana)', 'Mana'] },
   { id: '42779', name: 'Pendra Road', subdivisionId: '27', subdivisionName: 'Chattisgarh', district: 'Bilaspur' },
   { id: '42874', name: 'Raipur', subdivisionId: '27', subdivisionName: 'Chattisgarh', district: 'Raipur' },
   { id: '42948', name: 'Rajnandgaon', subdivisionId: '27', subdivisionName: 'Chattisgarh', district: 'Rajnandgaon' },
@@ -224,7 +224,8 @@ export const SUBDIVISIONS: readonly SubdivisionMetadata[] = Object.freeze([
     stationIds: Object.freeze([
       '42860', '42667', '42460', '42752', '42559', '42361',
       '42763', '42754', '42855', '42849', '42767', '42672',
-      '42557', '42661', '42665', '42456', '42459', '42662'
+      '42557', '42661', '42665', '42456', '42459', '42662',
+      '42358', '42558'
     ]),
   },
   {

@@ -178,14 +178,14 @@ describe('Report Data Orchestrator Suite', () => {
     assert.equal(vidarbha.subdivision.name, 'Vidarbha');
     assert.equal(vidarbha.report1Rows.length, 12); // All 12 Vidarbha stations
 
-    // Station 42937 (Nagpur) row check
-    const nagpurRow = vidarbha.report1Rows.find((r) => r.stationId === '42937')!;
-    assert.ok(nagpurRow);
-    assert.equal(nagpurRow.stationName, 'Nagpur');
-    assert.equal(nagpurRow.tmin, 25.7);
-    assert.equal(nagpurRow.tminDeparture, '+4.7'); // 25.7 - 21.0
-    assert.equal(nagpurRow.rainfall, 0.0);
-    assert.equal(nagpurRow.visibilityText, '04-10 km'); // code 96
+    // Station 42937 (Amravati) row check
+    const amravatiRow = vidarbha.report1Rows.find((r) => r.stationId === '42937')!;
+    assert.ok(amravatiRow);
+    assert.equal(amravatiRow.stationName, 'Amravati');
+    assert.equal(amravatiRow.tmin, 25.7);
+    assert.equal(amravatiRow.tminDeparture, '+4.7'); // 25.7 - 21.0
+    assert.equal(amravatiRow.rainfall, 0.0);
+    assert.equal(amravatiRow.visibilityText, '04-10 km'); // code 96
   });
 
   it('2. correctly associates previous-day Tmax from Section 333 with D - 1', () => {
@@ -522,14 +522,14 @@ describe('Report Data Orchestrator Suite', () => {
       const stationIds = rows.map((r) => r.stationId);
 
       // Legacy print report order from orpfast_stations_for:
-      // 42867 (Amravati), 42939 (Wardha), 42946 (Buldana), 42871 (Gondia), 43029 (Brahmapuri),
-      // 42947 (Chandrapur), 42937 (Nagpur), 42933 (Akola), 42943 (Gadchiroli), 42931 (Washim), 42935 (Yavatmal)
+      // 42867 (Nagpur), 42939 (Wardha), 42946 (Brahmpuri), 42871 (Gondia), 43029 (Chandrapur),
+      // 42947 (Gadchiroli), 42937 (Amravati), 42933 (Akola), 42943 (Yavatmal), 42931 (Buldana), 42935 (Washim)
       assert.deepEqual(stationIds, [
         '42867', '42939', '42946', '42871', '43029',
         '42947', '42937', '42933', '42943', '42931', '42935'
       ]);
-      assert.equal(rows[0].stationName, 'Amravati');
-      assert.equal(rows[stationIds.indexOf('42937')].stationName, 'Nagpur');
+      assert.equal(rows[0].stationName, 'Nagpur');
+      assert.equal(rows[stationIds.indexOf('42937')].stationName, 'Amravati');
     });
 
     it('orders Vidarbha stations by default web order when orderVariant is "web"', () => {
@@ -541,7 +541,7 @@ describe('Report Data Orchestrator Suite', () => {
 
       const rows = result.subdivisions[0].report1Rows;
       assert.equal(rows[0].stationId, '42933'); // Akola
-      assert.equal(rows[1].stationId, '42937'); // Nagpur
+      assert.equal(rows[1].stationId, '42937'); // Amravati
       assert.equal(rows.length, 12); // Includes 42865 (Bhandara) in web view
     });
   });
@@ -561,7 +561,7 @@ describe('Report Data Orchestrator Suite', () => {
 
   describe('15. Sparse / Missing Station Data Propagation & Subdivision Aggregation', () => {
     it('handles a subdivision where only 1 station reports without arithmetic errors', () => {
-      // Only Nagpur reports in Vidarbha (all other 11 stations missing)
+      // Only Amravati (42937) reports in Vidarbha (all other 11 stations missing)
       const raw = '42937 32596 22503 10326 20200 40059 82500 333 10380 20250 59010 555 10000=';
       const normalProvider = new TestPentadNormalProvider([
         { station: '42937', pentad: '01', tmin: 20.0, tmax: 35.0 },
@@ -593,9 +593,9 @@ describe('Report Data Orchestrator Suite', () => {
       assert.equal(summary.tmax24hChangeAvg, 1.0); // 38.0 - 37.0
       assert.equal(summary.tmaxDepartureAvg, 3.0); // 38.0 - 35.0 = +3.0
       assert.equal(summary.lowestTmin.value, 25.0);
-      assert.equal(summary.lowestTmin.stationNames, 'Nagpur');
+      assert.equal(summary.lowestTmin.stationNames, 'Amravati');
       assert.equal(summary.highestTmax.value, 38.0);
-      assert.equal(summary.highestTmax.stationNames, 'Nagpur');
+      assert.equal(summary.highestTmax.stationNames, 'Amravati');
       assert.equal(summary.heaviestRainfall.value, 0.0);
       assert.equal(summary.rainfallPercent, 0);
       assert.equal(summary.rainfallDistributionClass, 'DRY');
@@ -674,8 +674,8 @@ describe('Report Data Orchestrator Suite', () => {
         'Chattisgarh',
       ]);
 
-      // West MP (19): 18 stations
-      assert.equal(result.subdivisions[0].report1Rows.length, 18);
+      // West MP (19): 20 stations registered (18 active + 2 disabled: Bhind, Ashoknagar)
+      assert.equal(result.subdivisions[0].report1Rows.length, 20);
       // East MP (20): 15 stations
       assert.equal(result.subdivisions[1].report1Rows.length, 15);
       // Vidarbha (26): 12 stations
@@ -686,12 +686,12 @@ describe('Report Data Orchestrator Suite', () => {
   });
 
   describe('18. Complete 7-Subdivision Operational Report Coverage & Canonical Audit', () => {
-    it('audits all 7 subdivisions and all 77 canonical stations in the registry', () => {
+    it('audits all 7 subdivisions and all 79 canonical stations in the registry', () => {
       assert.equal(SUBDIVISIONS.length, 7);
-      assert.equal(CANONICAL_STATIONS.length, 77);
+      assert.equal(CANONICAL_STATIONS.length, 79);
 
       const expectedCounts: Record<string, number> = {
-        '19': 18, // West Madhya Pradesh
+        '19': 20, // West Madhya Pradesh (18 active + 2 disabled)
         '20': 15, // East Madhya Pradesh
         '26': 12, // Vidarbha (web view)
         '27': 8,  // Chattisgarh
@@ -708,17 +708,17 @@ describe('Report Data Orchestrator Suite', () => {
 
     it('processes all 7 meteorological subdivisions in a single operational run', () => {
       // Create a multi-station bulletin containing 1 station from each of the 7 subdivisions:
-      // Sub 19 (West MP): 42672 Bhopal
-      // Sub 20 (East MP): 42771 Jabalpur
-      // Sub 26 (Vidarbha): 42937 Nagpur
+      // Sub 19 (West MP): 42667 Bhopal
+      // Sub 20 (East MP): 42675 Jabalpur
+      // Sub 26 (Vidarbha): 42867 Nagpur
       // Sub 27 (Chattisgarh): 42874 Raipur
       // Sub 25 (Marathwada): 43014 Aurangabad
       // Sub 24 (Madhya Maharashtra): 43009 Pune
       // Sub 23 (Konkan & Goa): 43057 Mumbai (Santacruz)
       const bulletin7Subs = `
-        42672 32596 22503 10320 20190 40060 333 10380 20240 555 10000=
-        42771 32596 22503 10330 20180 40065 333 10390 20230 555 10000=
-        42937 32596 22503 10326 20200 40059 333 10396 20257 555 10036=
+        42667 32596 22503 10320 20190 40060 333 10380 20240 555 10000=
+        42675 32596 22503 10330 20180 40065 333 10390 20230 555 10000=
+        42867 32596 22503 10326 20200 40059 333 10396 20257 555 10036=
         42874 22596 22503 10340 20210 40055 333 10400 20260 555 00050 10000=
         43014 32596 22503 10310 20170 40070 333 10370 20220 555 10000=
         43009 32596 22503 10300 20160 40080 333 10360 20210 555 10000=
@@ -726,9 +726,9 @@ describe('Report Data Orchestrator Suite', () => {
       `;
 
       const normalProvider = new TestPentadNormalProvider([
-        { station: '42672', pentad: '01', tmin: 20.0, tmax: 34.0 },
-        { station: '42771', pentad: '01', tmin: 19.0, tmax: 35.0 },
-        { station: '42937', pentad: '01', tmin: 21.0, tmax: 33.0 },
+        { station: '42667', pentad: '01', tmin: 20.0, tmax: 34.0 },
+        { station: '42675', pentad: '01', tmin: 19.0, tmax: 35.0 },
+        { station: '42867', pentad: '01', tmin: 21.0, tmax: 33.0 },
         { station: '42874', pentad: '01', tmin: 22.0, tmax: 36.0 },
         { station: '43014', pentad: '01', tmin: 18.0, tmax: 33.0 },
         { station: '43009', pentad: '01', tmin: 17.0, tmax: 32.0 },
@@ -737,9 +737,9 @@ describe('Report Data Orchestrator Suite', () => {
 
       const histProvider = new TestHistoricalProvider([
         // Evening RH values from D - 1 baseline
-        { stationId: '42672', date: '2026-01-04', rh1730: 42, tmin: 23.0, tmax: 37.0 },
-        { stationId: '42771', date: '2026-01-04', rh1730: 38, tmin: 22.0, tmax: 38.0 },
-        { stationId: '42937', date: '2026-01-04', rh1730: 45, tmin: 24.5, tmax: 38.0 },
+        { stationId: '42667', date: '2026-01-04', rh1730: 42, tmin: 23.0, tmax: 37.0 },
+        { stationId: '42675', date: '2026-01-04', rh1730: 38, tmin: 22.0, tmax: 38.0 },
+        { stationId: '42867', date: '2026-01-04', rh1730: 45, tmin: 24.5, tmax: 38.0 },
         { stationId: '42874', date: '2026-01-04', rh1730: 50, tmin: 25.0, tmax: 39.0 },
         { stationId: '43014', date: '2026-01-04', rh1730: 35, tmin: 21.0, tmax: 36.0 },
         { stationId: '43009', date: '2026-01-04', rh1730: 40, tmin: 20.0, tmax: 35.0 },
@@ -775,6 +775,7 @@ describe('Report Data Orchestrator Suite', () => {
       const vid = result.subdivisions[2];
       assert.equal(vid.subdivision.name, 'Vidarbha');
       assert.equal(vid.report2Summary.highestTmax.value, 39.6);
+      assert.equal(vid.report2Summary.highestTmax.stationNames, 'Nagpur');
 
       // 4. Chattisgarh (27): Raipur (5.0 mm rain)
       const cht = result.subdivisions[3];

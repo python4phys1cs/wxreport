@@ -32,6 +32,7 @@ export function formatExtremeDistrictList(stationNamesStr: string): string {
     const stn = CANONICAL_STATIONS.find(
       (s) =>
         s.name.toLowerCase() === token.toLowerCase() ||
+        s.aliases?.some((a) => a.toLowerCase() === token.toLowerCase()) ||
         (s.district && s.district.toLowerCase() === token.toLowerCase())
     );
     return (stn?.district || token).toUpperCase();

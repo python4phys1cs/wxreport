@@ -46,7 +46,7 @@ describe('Station Names in Backups & Operational Authentication Suite', () => {
       // Check Nagpur (42867)
       const nagpur = archive.records[reportingDate]['42867'];
       assert.equal(nagpur.stationId, '42867');
-      assert.equal(nagpur.stationName, 'Amravati'); // Canonical name in registry
+      assert.equal(nagpur.stationName, 'Nagpur'); // Canonical name in registry
       assert.equal(nagpur.tmax, 43.5);
       assert.equal(nagpur.manualEdits?.tmax, true);
       assert.ok(nagpur.rawSynop?.includes('42867'));
@@ -75,7 +75,7 @@ describe('Station Names in Backups & Operational Authentication Suite', () => {
       // Data lines must contain station names
       const nagpurLine = lines.find((l) => l.includes('42867'));
       assert.ok(nagpurLine);
-      assert.ok(nagpurLine.includes('Amravati'));
+      assert.ok(nagpurLine.includes('Nagpur'));
 
       const akolaLine = lines.find((l) => l.includes('42933'));
       assert.ok(akolaLine);
@@ -188,7 +188,7 @@ describe('Station Names in Backups & Operational Authentication Suite', () => {
       assert.equal(jsonRestore.success, true);
 
       const jsonObs = storeFromJson.getStationObservation('42867', reportingDate);
-      assert.equal(jsonObs?.stationName, 'Amravati');
+      assert.equal(jsonObs?.stationName, 'Nagpur');
       assert.equal(jsonObs?.tmax, 44.2);
       assert.equal(jsonObs?.rainfall, 18.0);
       assert.equal(jsonObs?.manualEdits?.tmax, true);
@@ -205,7 +205,7 @@ describe('Station Names in Backups & Operational Authentication Suite', () => {
       assert.equal(csvRestore.success, true);
 
       const csvObs = storeFromCsv.getStationObservation('42867', reportingDate);
-      assert.equal(csvObs?.stationName, 'Amravati');
+      assert.equal(csvObs?.stationName, 'Nagpur');
       assert.equal(csvObs?.tmax, 44.2);
       assert.equal(csvObs?.rainfall, 18.0);
       assert.equal(csvObs?.manualEdits?.tmax, true);

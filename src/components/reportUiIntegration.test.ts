@@ -62,16 +62,16 @@ describe('UI Report Pipeline Integration Suite', () => {
     assert.ok(vidarbha);
     assert.equal(vidarbha.report1Rows.length, 12);
 
-    // Station 42937 (Nagpur) row assertions
-    const nagpur = vidarbha.report1Rows.find((r) => r.stationId === '42937')!;
-    assert.ok(nagpur);
-    assert.equal(nagpur.stationName, 'Nagpur');
-    assert.equal(nagpur.tmin, 22.0);
-    assert.equal(nagpur.tminDeparture, '+1.0');
-    assert.equal(nagpur.tmin24hChange, -2.5); // 22.0 - 24.5
-    assert.equal(nagpur.rh0830, 68);
-    assert.equal(nagpur.rainfall, 0.0);
-    assert.equal(nagpur.visibilityText, '04-10 km');
+    // Station 42937 (Amravati) row assertions
+    const amravati = vidarbha.report1Rows.find((r) => r.stationId === '42937')!;
+    assert.ok(amravati);
+    assert.equal(amravati.stationName, 'Amravati');
+    assert.equal(amravati.tmin, 22.0);
+    assert.equal(amravati.tminDeparture, '+1.0');
+    assert.equal(amravati.tmin24hChange, -2.5); // 22.0 - 24.5
+    assert.equal(amravati.rh0830, 68);
+    assert.equal(amravati.rainfall, 0.0);
+    assert.equal(amravati.visibilityText, '04-10 km');
 
     // Station 42871 (Gondia) row assertions
     const gondia = vidarbha.report1Rows.find((r) => r.stationId === '42871')!;
@@ -1410,34 +1410,124 @@ describe('UI Report Pipeline Integration Suite', () => {
       assert.match(html12ZWithVis, /<th[^>]*colspan="8"[^>]*>Observed on 2026-10-25<\/th>/i);
     });
 
-    it('renders Date Row and respects showVisibility in Report3SubdivisionView', async () => {
+    it('renders Date Row with yesterday date for 03Z and today date for 12Z under Max columns', async () => {
+      const { Report1StationTable } = await import('./Report1StationTable.tsx');
       const { Report3SubdivisionView } = await import('./Report3SubdivisionView.tsx');
-      const htmlNoVis = renderToStaticMarkup(
-        React.createElement(Report3SubdivisionView, {
-          subdivisions: dummySubdivisions as any,
-          reportingDate: '2026-10-25',
-          eveningDate: '2026-10-24',
-          reportSlot: '03Z',
-          showVisibility: false,
-        })
-      );
-      assert.ok(htmlNoVis.includes('header-date-row'));
-      assert.ok(htmlNoVis.includes('Observed on 2026-10-24'));
-      assert.ok(htmlNoVis.includes('Observed on 2026-10-25'));
-      assert.ok(!htmlNoVis.includes('>Visibility<'));
-      assert.ok(!htmlNoVis.includes('4000m'));
 
-      const htmlWithVis = renderToStaticMarkup(
-        React.createElement(Report3SubdivisionView, {
+      // 03Z Report 1: Max column shows yesterday's date
+      const html03Z = renderToStaticMarkup(
+        React.createElement(Report1StationTable, {
           subdivisions: dummySubdivisions as any,
-          reportingDate: '2026-10-25',
-          eveningDate: '2026-10-24',
+          reportingDate: '2026-10-28',
+          eveningDate: '2026-10-27',
           reportSlot: '03Z',
-          showVisibility: true,
         })
       );
-      assert.ok(htmlWithVis.includes('>Visibility<'));
-      assert.ok(htmlWithVis.includes('4000m'));
+      assert.match(html03Z, /<th[^>]*colspan="3"[^>]*>Observed on 2026-10-27<\/th>/i);
+
+      // 12Z Report 1: Max column shows today's date
+      const html12Z = renderToStaticMarkup(
+        React.createElement(Report1StationTable, {
+          subdivisions: dummySubdivisions as any,
+          reportingDate: '2026-10-28',
+          eveningDate: '2026-10-27',
+          reportSlot: '12Z',
+        })
+      );
+      assert.match(html12Z, /<th[^>]*colspan="3"[^>]*>Observed on 2026-10-28<\/th>/i);
+
+      // 03Z Report 3: Max column shows yesterday's date
+      const html03ZSub = renderToStaticMarkup(
+        React.createElement(Report3SubdivisionView, {
+          subdivisions: dummySubdivisions as any,
+          reportingDate: '2026-10-28',
+          eveningDate: '2026-10-27',
+          reportSlot: '03Z',
+        })
+      );
+      assert.match(html03ZSub, /<th[^>]*colspan="3"[^>]*>Observed on 2026-10-27<\/th>/i);
+
+      // 12Z Report 3: Max column shows today's date
+      const html12ZSub = renderToStaticMarkup(
+        React.createElement(Report3SubdivisionView, {
+          subdivisions: dummySubdivisions as any,
+          reportingDate: '2026-10-28',
+          eveningDate: '2026-10-27',
+          reportSlot: '12Z',
+        })
+      );
+      assert.match(html12ZSub, /<th[^>]*colspan="3"[^>]*>Observed on 2026-10-28<\/th>/i);
+    });
+
+    it('isolates 03Z and 12Z max temp data so each report reflects its distinct observation date and value', async () => {
+      const { InMemoryObservationStore } = await import('../engine/observationStore.ts');
+      const store = new InMemoryObservationStore();
+
+      // Reporting date is 2026-10-28
+      // 03Z observation arrives: reports yesterday's (2026-10-27) max temp as 34.0°C
+      store.ingest03Z(
+        [
+          {
+            stationId: '42867', // Nagpur
+            tmin: 22.0,
+            tmaxPreviousDay: 34.0,
+            rainfall: 0,
+            relativeHumidity: 65,
+          },
+        ],
+        '2026-10-28'
+      );
+
+      // 12Z observation arrives: reports today's (2026-10-28) max temp as 37.5°C
+      store.ingest12Z(
+        [
+          {
+            stationId: '42867', // Nagpur
+            tmax: 37.5,
+            rainfall: 0,
+            relativeHumidity: 45,
+          },
+        ],
+        '2026-10-28'
+      );
+
+      // Generate 03Z report: must show yesterday's max temp (34.0°C)
+      const report03Z = generateDailyReports('', '2026-10-28', normalProvider, historicalProvider, {
+        observationStore: store,
+        utcSlot: '03Z',
+      });
+      const vid03Z = report03Z.subdivisions.find((s) => s.subdivision.id === '26');
+      const nagpur03Z = vid03Z?.report1Rows.find((r) => r.stationId === '42867');
+      assert.equal(nagpur03Z?.tmax, 34.0, '03Z report must display yesterday max temp');
+
+      // Generate 12Z report: must show today's max temp (37.5°C)
+      const report12Z = generateDailyReports('', '2026-10-28', normalProvider, historicalProvider, {
+        observationStore: store,
+        utcSlot: '12Z',
+      });
+      const vid12Z = report12Z.subdivisions.find((s) => s.subdivision.id === '26');
+      const nagpur12Z = vid12Z?.report1Rows.find((r) => r.stationId === '42867');
+      assert.equal(nagpur12Z?.tmax, 37.5, '12Z report must display today max temp');
+
+      // If station had only 03Z ingested (no 12Z), 12Z report must not show 03Z's previous day value
+      store.ingest03Z(
+        [
+          {
+            stationId: '42937', // Amravati
+            tmin: 20.0,
+            tmaxPreviousDay: 33.0,
+          },
+        ],
+        '2026-10-28'
+      );
+      const report12ZAfter = generateDailyReports('', '2026-10-28', normalProvider, historicalProvider, {
+        observationStore: store,
+        utcSlot: '12Z',
+      });
+      const amravati12Z = report12ZAfter.subdivisions
+        .find((s) => s.subdivision.id === '26')
+        ?.report1Rows.find((r) => r.stationId === '42937');
+      assert.equal(amravati12Z?.tmax, null, '12Z report must show null when 12Z observation is not received');
     });
   });
 });

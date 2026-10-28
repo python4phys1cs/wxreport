@@ -7,15 +7,15 @@ import { CANONICAL_STATIONS } from '../constants/stationRegistry.ts';
 
 /**
  * Default station codes excluded from operational reports.
- * Ashoknagar ('42665') must be disabled by default in reports.
+ * Non-synoptic stations Bhind ('42358') and Ashoknagar ('42558') are disabled by default in reports.
  */
-export const DEFAULT_DISABLED_STATION_IDS: readonly string[] = Object.freeze(['42665']);
+export const DEFAULT_DISABLED_STATION_IDS: readonly string[] = Object.freeze(['42358', '42558']);
 
 export const STORAGE_KEY_STATION_INCLUSION = 'wxops_station_inclusion';
 
 /**
  * Returns the default inclusion map for all canonical stations.
- * Every canonical station is true (enabled), except Ashoknagar ('42665') which is false (disabled).
+ * Every canonical station is true (enabled), except Bhind ('42358') and Ashoknagar ('42558') which are false (disabled).
  */
 export function getDefaultStationInclusion(): Record<string, boolean> {
   const map: Record<string, boolean> = {};
@@ -43,6 +43,14 @@ export function loadStationInclusion(): Record<string, boolean> {
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
       return defaults;
+    }
+
+    // Migration: If older storage had 42665 disabled under the old assumption it was Ashoknagar,
+    // migrate 42665 (now Shajapur) to enabled, and guarantee Bhind/Ashoknagar follow defaults.
+    if (parsed['42358'] === undefined && parsed['42558'] === undefined) {
+      if (parsed['42665'] === false) {
+        delete parsed['42665'];
+      }
     }
 
     // Merge saved settings with defaults to guarantee all canonical stations exist

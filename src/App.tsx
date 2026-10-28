@@ -408,7 +408,7 @@ export default function App() {
   const [reportsResult, setReportsResult] = useState<OperationalReportsResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // 7. Station Report Inclusion (Ashoknagar 42665 disabled by default)
+  // 7. Station Report Inclusion (Bhind and Ashoknagar disabled by default)
   const [stationInclusion, setStationInclusion] = useState<Record<string, boolean>>(() => loadStationInclusion());
 
   const handleReportSlotChange = useCallback(
@@ -759,8 +759,21 @@ export default function App() {
           updates.rainfall = val;
         }
       } else if (field === 'tmax') {
-        updates.tmax = val;
-        updates.tmaxDate = reportingDate;
+        if (utcSlot === '03Z') {
+          updates.tmax03Z = val;
+          updates.tmaxPreviousDay = val;
+          updates.tmaxSlot = '03Z';
+          updates.tmaxDate = shiftDateString(reportingDate, -1);
+          const existing = observationStore.getStationObservation(stationId, reportingDate);
+          if (!existing?.has12Z && existing?.tmaxSlot !== '12Z') {
+            updates.tmax = val;
+          }
+        } else {
+          updates.tmax12Z = val;
+          updates.tmax = val;
+          updates.tmaxSlot = '12Z';
+          updates.tmaxDate = reportingDate;
+        }
       } else if (field === 'tmin') {
         updates.tmin = val;
         updates.tminDate = reportingDate;

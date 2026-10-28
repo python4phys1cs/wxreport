@@ -39,6 +39,8 @@ export interface PersistedStationObservation {
   tmax: number | null;
   tmaxDate: string | null;
   tmaxSlot: UtcSlot | null;
+  tmax03Z?: number | null;
+  tmax12Z?: number | null;
 
   /** Minimum temperature (°C) */
   tmin: number | null;
@@ -564,6 +566,8 @@ export function validateArchiveData(
         tmax: numOrNull(obs.tmax),
         tmaxDate: obs.tmaxDate ? String(obs.tmaxDate) : null,
         tmaxSlot: (obs.tmaxSlot === '03Z' || obs.tmaxSlot === '12Z') ? obs.tmaxSlot : null,
+        tmax03Z: numOrNull(obs.tmax03Z ?? obs.tmaxPreviousDay),
+        tmax12Z: numOrNull(obs.tmax12Z),
         tmaxPreviousDay: numOrNull(obs.tmaxPreviousDay),
         tmin: numOrNull(obs.tmin),
         tminDate: obs.tminDate ? String(obs.tminDate) : null,
@@ -854,6 +858,8 @@ function createEmptyStationObservation(stationId: string, reportingDate: string)
     tmax: null,
     tmaxDate: null,
     tmaxSlot: null,
+    tmax03Z: null,
+    tmax12Z: null,
     tmin: null,
     tminDate: null,
     tminSlot: null,
@@ -893,6 +899,9 @@ function createStationObservationWithPriorState(
     tmax: prior.tmax,
     tmaxDate: prior.tmaxDate,
     tmaxSlot: prior.tmaxSlot,
+    tmax03Z: prior.tmax03Z,
+    tmax12Z: prior.tmax12Z,
+    tmaxPreviousDay: prior.tmaxPreviousDay,
     tmin: prior.tmin,
     tminDate: prior.tminDate,
     tminSlot: prior.tminSlot,
@@ -1082,6 +1091,7 @@ export class InMemoryObservationStore implements ObservationStore {
       // 2. Previous-day Tmax from Section 333 (if present in 03Z)
       if (obs.tmaxPreviousDay !== null && obs.tmaxPreviousDay !== undefined && !isNaN(obs.tmaxPreviousDay)) {
         current.tmaxPreviousDay = obs.tmaxPreviousDay;
+        current.tmax03Z = obs.tmaxPreviousDay;
         if (!current.manualEdits?.tmax && (current.tmaxDate !== cleanDate || current.tmaxSlot !== '12Z')) {
           current.tmax = obs.tmaxPreviousDay;
           current.tmaxDate = previousDate;
@@ -1104,23 +1114,33 @@ export class InMemoryObservationStore implements ObservationStore {
         const prevMap = this.archiveByDate.get(previousDate);
         if (prevMap) {
           const prevRecord = prevMap.get(stnId);
-          if (prevRecord && prevRecord.tmax === null && !prevRecord.manualEdits?.tmax) {
-            prevRecord.tmax = obs.tmaxPreviousDay;
-            prevRecord.tmaxDate = previousDate;
-            prevRecord.tmaxSlot = '03Z';
+          if (prevRecord && !prevRecord.manualEdits?.tmax) {
+            if (prevRecord.tmax === null) {
+              prevRecord.tmax = obs.tmaxPreviousDay;
+              prevRecord.tmaxDate = previousDate;
+              prevRecord.tmaxSlot = '03Z';
+            }
+            if (prevRecord.tmax03Z === null || prevRecord.tmax03Z === undefined) {
+              prevRecord.tmax03Z = obs.tmaxPreviousDay;
+            }
           }
         }
-      } else if (!current.manualEdits?.tmax && (current.tmax === null || current.tmaxDate === previousDate)) {
+      } else if (!current.manualEdits?.tmax && (current.tmax === null || current.tmaxDate === previousDate || current.tmax03Z === null || current.tmax03Z === undefined)) {
         // Carry forward previous evening's Tmax if 03Z telegram omits Section 333 Group 1
         const prevRecord = this.archiveByDate.get(previousDate)?.get(stnId);
-        const prevTmax = (prevRecord?.tmax !== null && prevRecord?.tmax !== undefined)
-          ? prevRecord.tmax
-          : (this.history.get(`${stnId}_${previousDate}`)?.tmax ?? null);
+        const prevTmax = (prevRecord?.tmax12Z !== null && prevRecord?.tmax12Z !== undefined)
+          ? prevRecord.tmax12Z
+          : (prevRecord?.tmax !== null && prevRecord?.tmax !== undefined)
+            ? prevRecord.tmax
+            : (this.history.get(`${stnId}_${previousDate}`)?.tmax ?? null);
         if (prevTmax !== null && prevTmax !== undefined && !isNaN(prevTmax)) {
-          current.tmax = prevTmax;
-          current.tmaxDate = previousDate;
-          current.tmaxSlot = '03Z';
+          current.tmax03Z = prevTmax;
           current.tmaxPreviousDay = prevTmax;
+          if (current.tmaxDate !== cleanDate || current.tmaxSlot !== '12Z') {
+            current.tmax = prevTmax;
+            current.tmaxDate = previousDate;
+            current.tmaxSlot = '03Z';
+          }
         }
       }
 
@@ -1214,6 +1234,7 @@ export class InMemoryObservationStore implements ObservationStore {
 
       // 1. Current day Tmax (recorded up to 1730 IST on reportingDate)
       if (obs.tmax !== null && obs.tmax !== undefined && !isNaN(obs.tmax)) {
+        current.tmax12Z = obs.tmax;
         if (!current.manualEdits?.tmax) {
           current.tmax = obs.tmax;
           current.tmaxDate = cleanDate;
@@ -1225,12 +1246,15 @@ export class InMemoryObservationStore implements ObservationStore {
         const nextMap = this.archiveByDate.get(nextDate);
         if (nextMap) {
           const nextRecord = nextMap.get(stnId);
-          if (nextRecord && !nextRecord.manualEdits?.tmax && (nextRecord.tmax === null || nextRecord.tmaxDate === cleanDate || nextRecord.tmaxSlot === '03Z')) {
-            nextRecord.tmax = obs.tmax;
-            nextRecord.tmaxDate = cleanDate;
-            nextRecord.tmaxSlot = '03Z';
+          if (nextRecord && !nextRecord.manualEdits?.tmax) {
             nextRecord.tmaxPreviousDay = obs.tmax;
-            this.updateHistorySnapshot(nextRecord, nextDate);
+            nextRecord.tmax03Z = obs.tmax;
+            if (nextRecord.tmax === null || nextRecord.tmaxDate === cleanDate || nextRecord.tmaxSlot === '03Z') {
+              nextRecord.tmax = obs.tmax;
+              nextRecord.tmaxDate = cleanDate;
+              nextRecord.tmaxSlot = '03Z';
+              this.updateHistorySnapshot(nextRecord, nextDate);
+            }
           }
         }
       }
@@ -1430,6 +1454,7 @@ export class InMemoryObservationStore implements ObservationStore {
       }
       if (obs.tmaxPreviousDay !== null && obs.tmaxPreviousDay !== undefined && !isNaN(obs.tmaxPreviousDay)) {
         current.tmaxPreviousDay = obs.tmaxPreviousDay;
+        current.tmax03Z = obs.tmaxPreviousDay;
         if (!current.manualEdits?.tmax && (current.tmaxDate !== cleanDate || current.tmaxSlot !== '12Z')) {
           current.tmax = obs.tmaxPreviousDay;
           current.tmaxDate = previousDate;
@@ -1452,23 +1477,33 @@ export class InMemoryObservationStore implements ObservationStore {
         const prevMap = this.archiveByDate.get(previousDate);
         if (prevMap) {
           const prevRecord = prevMap.get(cleanId);
-          if (prevRecord && prevRecord.tmax === null && !prevRecord.manualEdits?.tmax) {
-            prevRecord.tmax = obs.tmaxPreviousDay;
-            prevRecord.tmaxDate = previousDate;
-            prevRecord.tmaxSlot = '03Z';
+          if (prevRecord && !prevRecord.manualEdits?.tmax) {
+            if (prevRecord.tmax === null) {
+              prevRecord.tmax = obs.tmaxPreviousDay;
+              prevRecord.tmaxDate = previousDate;
+              prevRecord.tmaxSlot = '03Z';
+            }
+            if (prevRecord.tmax03Z === null || prevRecord.tmax03Z === undefined) {
+              prevRecord.tmax03Z = obs.tmaxPreviousDay;
+            }
           }
         }
-      } else if (!current.manualEdits?.tmax && (current.tmax === null || current.tmaxDate === previousDate)) {
+      } else if (!current.manualEdits?.tmax && (current.tmax === null || current.tmaxDate === previousDate || current.tmax03Z === null || current.tmax03Z === undefined)) {
         // Carry forward previous evening's Tmax if 03Z telegram omits Section 333 Group 1
         const prevRecord = this.archiveByDate.get(previousDate)?.get(cleanId);
-        const prevTmax = (prevRecord?.tmax !== null && prevRecord?.tmax !== undefined)
-          ? prevRecord.tmax
-          : (this.history.get(`${cleanId}_${previousDate}`)?.tmax ?? null);
+        const prevTmax = (prevRecord?.tmax12Z !== null && prevRecord?.tmax12Z !== undefined)
+          ? prevRecord.tmax12Z
+          : (prevRecord?.tmax !== null && prevRecord?.tmax !== undefined)
+            ? prevRecord.tmax
+            : (this.history.get(`${cleanId}_${previousDate}`)?.tmax ?? null);
         if (prevTmax !== null && prevTmax !== undefined && !isNaN(prevTmax)) {
-          current.tmax = prevTmax;
-          current.tmaxDate = previousDate;
-          current.tmaxSlot = '03Z';
+          current.tmax03Z = prevTmax;
           current.tmaxPreviousDay = prevTmax;
+          if (current.tmaxDate !== cleanDate || current.tmaxSlot !== '12Z') {
+            current.tmax = prevTmax;
+            current.tmaxDate = previousDate;
+            current.tmaxSlot = '03Z';
+          }
         }
       }
       if (obs.relativeHumidity !== null && obs.relativeHumidity !== undefined && !isNaN(obs.relativeHumidity)) {
@@ -1509,6 +1544,7 @@ export class InMemoryObservationStore implements ObservationStore {
     } else {
       const obs = parsed as Parsed12UtcStationObservation;
       if (obs.tmax !== null && obs.tmax !== undefined && !isNaN(obs.tmax)) {
+        current.tmax12Z = obs.tmax;
         if (!current.manualEdits?.tmax) {
           current.tmax = obs.tmax;
           current.tmaxDate = cleanDate;
@@ -1520,12 +1556,15 @@ export class InMemoryObservationStore implements ObservationStore {
         const nextMap = this.archiveByDate.get(nextDate);
         if (nextMap) {
           const nextRecord = nextMap.get(cleanId);
-          if (nextRecord && !nextRecord.manualEdits?.tmax && (nextRecord.tmax === null || nextRecord.tmaxDate === cleanDate || nextRecord.tmaxSlot === '03Z')) {
-            nextRecord.tmax = obs.tmax;
-            nextRecord.tmaxDate = cleanDate;
-            nextRecord.tmaxSlot = '03Z';
+          if (nextRecord && !nextRecord.manualEdits?.tmax) {
             nextRecord.tmaxPreviousDay = obs.tmax;
-            this.updateHistorySnapshot(nextRecord, nextDate);
+            nextRecord.tmax03Z = obs.tmax;
+            if (nextRecord.tmax === null || nextRecord.tmaxDate === cleanDate || nextRecord.tmaxSlot === '03Z') {
+              nextRecord.tmax = obs.tmax;
+              nextRecord.tmaxDate = cleanDate;
+              nextRecord.tmaxSlot = '03Z';
+              this.updateHistorySnapshot(nextRecord, nextDate);
+            }
           }
         }
       }
@@ -1735,16 +1774,24 @@ export class InMemoryObservationStore implements ObservationStore {
     const cleanStn = stationId.trim();
     const cleanDate = date.trim();
 
+    const key = `${cleanStn}_${cleanDate}`;
+
     // 1. Check if observation exists in the 15-day archive for that date
     const dateMap = this.archiveByDate.get(cleanDate);
     if (dateMap) {
       const archivedObs = dateMap.get(cleanStn);
       if (archivedObs) {
+        const histTmax =
+          archivedObs.tmax12Z ??
+          (archivedObs.tmaxSlot === '12Z' ? archivedObs.tmax : null) ??
+          this.history.get(key)?.tmax ??
+          archivedObs.tmax ??
+          null;
         return {
           stationId: cleanStn,
           date: cleanDate,
           tmin: archivedObs.tmin,
-          tmax: archivedObs.tmax,
+          tmax: histTmax,
           rainfall: archivedObs.rainfall,
           rh0830: archivedObs.rh0830,
           rh1730: archivedObs.rh1730,
@@ -1753,7 +1800,6 @@ export class InMemoryObservationStore implements ObservationStore {
     }
 
     // 2. Check seeded baseline history
-    const key = `${cleanStn}_${cleanDate}`;
     return this.history.get(key) ?? null;
   }
 

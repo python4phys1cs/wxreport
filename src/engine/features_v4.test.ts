@@ -35,36 +35,40 @@ describe('Feature Suite: Station Exclusion, Raw SYNOP Preservation & Historical 
     historicalProvider = new InMemoryHistoricalProvider([]);
   });
 
-  describe('1. Configurable Station Exclusions (Ashoknagar 42665 default)', () => {
-    it('verifies Ashoknagar (42665) is in DEFAULT_DISABLED_STATION_IDS and disabled by default', () => {
-      assert.deepEqual(DEFAULT_DISABLED_STATION_IDS, ['42665']);
+  describe('1. Configurable Station Exclusions (Bhind 42358 & Ashoknagar 42558 default)', () => {
+    it('verifies Bhind (42358) and Ashoknagar (42558) are in DEFAULT_DISABLED_STATION_IDS and disabled by default', () => {
+      assert.deepEqual(DEFAULT_DISABLED_STATION_IDS, ['42358', '42558']);
 
       const defaultMap = getDefaultStationInclusion();
-      assert.equal(defaultMap['42665'], false);
+      assert.equal(defaultMap['42358'], false);
+      assert.equal(defaultMap['42558'], false);
       assert.equal(defaultMap['42933'], true); // Akola
       assert.equal(defaultMap['42867'], true); // Nagpur
+      assert.equal(defaultMap['42665'], true); // Shajapur (active synoptic station)
 
       const excludedIds = getExcludedStationIds(defaultMap);
-      assert.deepEqual(excludedIds, ['42665']);
+      assert.deepEqual(excludedIds, ['42358', '42558']);
 
-      assert.equal(isStationIncluded('42665', defaultMap), false);
+      assert.equal(isStationIncluded('42358', defaultMap), false);
+      assert.equal(isStationIncluded('42558', defaultMap), false);
       assert.equal(isStationIncluded('42933', defaultMap), true);
+      assert.equal(isStationIncluded('42665', defaultMap), true);
     });
 
-    it('filters Ashoknagar (42665) out of reports by default even when observations are present', () => {
+    it('filters Ashoknagar (42558) out of reports by default even when observations are present', () => {
       const reportingDate = '2026-05-15';
-      // Ingest observations for Ashoknagar (42665), Bhopal (42672), and Akola (42933)
+      // Ingest observations for Ashoknagar (42558), Bhopal (42667), and Akola (42933)
       const synopText = `AAXX 15034
-42665 32996 00000 10320 20180 40145 333 20210 58010 555 10000=
-42672 32996 00000 10330 20190 40140 333 20220 58010 555 10000=
+42558 32996 00000 10320 20180 40145 333 20210 58010 555 10000=
+42667 32996 00000 10330 20190 40140 333 20220 58010 555 10000=
 42933 32996 00000 10340 20200 40135 333 20230 58010 555 10000=`;
 
       store.ingestBulletin('03Z', synopText, reportingDate);
 
       // Verify Ashoknagar observation is physically stored in observation store
-      const stnInStore = store.getStationObservation('42665', reportingDate);
+      const stnInStore = store.getStationObservation('42558', reportingDate);
       assert.ok(stnInStore);
-      assert.equal(stnInStore.stationId, '42665');
+      assert.equal(stnInStore.stationId, '42558');
       assert.equal(stnInStore.tmin, 21.0);
 
       // Generate reports using default station inclusion (which App.tsx passes)
@@ -76,21 +80,21 @@ describe('Feature Suite: Station Exclusion, Raw SYNOP Preservation & Historical 
 
       // Ashoknagar must NOT appear in report subdivisions
       const allStationsInReport = reports.subdivisions.flatMap((s) => s.report1Rows);
-      const ashoknagarInReports = allStationsInReport.find((o) => o.stationId === '42665');
+      const ashoknagarInReports = allStationsInReport.find((o) => o.stationId === '42558');
       assert.equal(ashoknagarInReports, undefined);
 
-      // But Bhopal (42672) and Akola (42933) must appear
+      // But Bhopal (42667) and Akola (42933) must appear
       const akolaInReports = allStationsInReport.find((o) => o.stationId === '42933');
       assert.ok(akolaInReports);
 
       // Report result records excluded station ID
-      assert.ok(reports.excludedStationIds?.includes('42665'));
+      assert.ok(reports.excludedStationIds?.includes('42558'));
     });
 
-    it('includes Ashoknagar (42665) in reports when user explicitly enables it in options', () => {
+    it('includes Ashoknagar (42558) in reports when user explicitly enables it in options', () => {
       const reportingDate = '2026-05-15';
       const synopText = `AAXX 15034
-42665 32996 00000 10320 20180 40145 333 20210 58010 555 10000=
+42558 32996 00000 10320 20180 40145 333 20210 58010 555 10000=
 42933 32996 00000 10340 20200 40135 333 20230 58010 555 10000=`;
 
       store.ingestBulletin('03Z', synopText, reportingDate);
@@ -103,9 +107,9 @@ describe('Feature Suite: Station Exclusion, Raw SYNOP Preservation & Historical 
       });
 
       const allStations = reports.subdivisions.flatMap((s) => s.report1Rows);
-      const ashoknagarInReports = allStations.find((o) => o.stationId === '42665');
+      const ashoknagarInReports = allStations.find((o) => o.stationId === '42558');
       assert.ok(ashoknagarInReports);
-      assert.equal(ashoknagarInReports.stationId, '42665');
+      assert.equal(ashoknagarInReports.stationId, '42558');
       assert.equal(ashoknagarInReports.tmin, 21.0);
     });
 

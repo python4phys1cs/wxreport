@@ -269,7 +269,7 @@ export const Report3SubdivisionView: React.FC<Report3SubdivisionProps> = ({
                     {!is03Z && <th className="col-rain-sub">Last 9 Hours up to 1730 hrs IST</th>}
                   </tr>
                   <tr className="header-date-row">
-                    <th colSpan={3} className="header-date-cell">Observed on {yesterdayDate}</th>
+                    <th colSpan={3} className="header-date-cell">Observed on {is03Z ? yesterdayDate : todayDate}</th>
                     <th
                       colSpan={3 + (is03Z ? 1 : 2) + (showVisibility ? 1 : 0) + (is03Z ? 1 : 2)}
                       className="header-date-cell"

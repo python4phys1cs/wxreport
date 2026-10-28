@@ -65,30 +65,32 @@ describe('UI & Settings V5 Improvements Suite', () => {
       assert.ok(html.includes('Unlock Toggles 🔓'));
       // By default collapsed, so the full station list items are not rendered
       assert.ok(!html.includes('station-inclusion-list'));
-      // Preserves Ashoknagar 42665 excluded note
-      assert.ok(html.includes('Ashoknagar 42665 excluded by default'));
+      // Preserves Bhind and Ashoknagar excluded note
+      assert.ok(html.includes('Bhind and Ashoknagar excluded by default'));
     });
 
-    it('preserves default Ashoknagar 42665 exclusion while locking only drawer controls', () => {
+    it('preserves default Bhind 42358 and Ashoknagar 42558 exclusion while locking only drawer controls', () => {
       const inclusion = getDefaultStationInclusion();
-      assert.equal(inclusion['42665'], false);
+      assert.equal(inclusion['42358'], false);
+      assert.equal(inclusion['42558'], false);
       const excluded = getExcludedStationIds(inclusion);
-      assert.ok(excluded.includes('42665'));
+      assert.ok(excluded.includes('42358'));
+      assert.ok(excluded.includes('42558'));
 
       // Locking does not alter store observation ingestion
       const store = new InMemoryObservationStore();
       const updated = store.ingest03Z(
         [
           {
-            stationId: '42665',
+            stationId: '42558',
             rainfall: 12.4,
             tmin: 21.0,
           },
         ],
         '2026-10-10'
       );
-      assert.ok(updated.includes('42665'));
-      const stored = store.getStationObservation('42665', '2026-10-10');
+      assert.ok(updated.includes('42558'));
+      const stored = store.getStationObservation('42558', '2026-10-10');
       assert.ok(stored);
       assert.equal(stored.rainfall, 12.4);
     });

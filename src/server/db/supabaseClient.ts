@@ -78,6 +78,8 @@ export function rowToObservation(row: DbStationObservationRow): PersistedStation
     tminDate: row.tmin_date ?? null,
     tminSlot: (row.tmin_slot as UtcSlot) ?? null,
     tmaxPreviousDay: row.tmax_previous_day !== null && row.tmax_previous_day !== undefined ? Number(row.tmax_previous_day) : null,
+    tmax03Z: row.tmax_previous_day !== null && row.tmax_previous_day !== undefined ? Number(row.tmax_previous_day) : null,
+    tmax12Z: (row.tmax_slot === '12Z' || row.has12z) && row.tmax !== null && row.tmax !== undefined ? Number(row.tmax) : null,
     rh0830: row.rh0830 !== null && row.rh0830 !== undefined ? Math.round(Number(row.rh0830)) : null,
     rh1730: row.rh1730 !== null && row.rh1730 !== undefined ? Math.round(Number(row.rh1730)) : null,
     dryBulb0830: row.dry_bulb0830 !== null && row.dry_bulb0830 !== undefined ? Number(row.dry_bulb0830) : null,
@@ -375,6 +377,7 @@ export class SupabaseObservationStoreService {
         // Section 333 previous day Tmax
         if (obs.tmaxPreviousDay !== null && obs.tmaxPreviousDay !== undefined && !isNaN(obs.tmaxPreviousDay)) {
           current.tmaxPreviousDay = obs.tmaxPreviousDay;
+          current.tmax03Z = obs.tmaxPreviousDay;
           if (!current.manualEdits?.tmax && (current.tmaxDate !== cleanDate || current.tmaxSlot !== '12Z')) {
             current.tmax = obs.tmaxPreviousDay;
             current.tmaxDate = previousDate;
@@ -535,6 +538,7 @@ export class SupabaseObservationStoreService {
 
         // Evening Tmax
         if (obs.tmax !== null && obs.tmax !== undefined && !isNaN(obs.tmax)) {
+          current.tmax12Z = obs.tmax;
           if (!current.manualEdits?.tmax || duplicatePolicy === 'update_existing') {
             current.tmax = obs.tmax;
             current.tmaxDate = cleanDate;
@@ -548,6 +552,7 @@ export class SupabaseObservationStoreService {
             nextRec.tmaxDate = cleanDate;
             nextRec.tmaxSlot = '03Z';
             nextRec.tmaxPreviousDay = obs.tmax;
+            nextRec.tmax03Z = obs.tmax;
             nextDayRowsToUpsert.push(observationToRow(nextRec));
           }
         }
