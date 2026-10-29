@@ -4041,28 +4041,6 @@ body {
   cursor: not-allowed;
 }
 
-.synop-editor-search-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  background: var(--bg-header);
-  border: 1px solid var(--border-light);
-  border-radius: 4px;
-  padding: 0.2rem 0.5rem;
-  font-size: 0.6875rem;
-  font-weight: 500;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.synop-editor-search-toggle:hover,
-.synop-editor-search-toggle.active {
-  background-color: var(--bg-panel);
-  border-color: var(--accent-primary);
-  color: var(--accent-primary);
-}
-
 /* ==========================================================================
    Inline Overwrite Confirmation Card & Editor Box Selection
    ========================================================================== */

@@ -64,6 +64,9 @@ export const ObservationModal: React.FC<ObservationModalProps> = ({
       if (e.key === 'Escape') {
         e.preventDefault();
         onClose();
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        setIsSearchOpen(true);
       }
     };
 

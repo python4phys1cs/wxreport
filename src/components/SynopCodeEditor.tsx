@@ -409,23 +409,6 @@ export const SynopCodeEditor = forwardRef<HTMLTextAreaElement, SynopCodeEditorPr
 
   return (
     <div className="synop-code-editor-container" style={{ width: '100%', position: 'relative' }}>
-      {/* Top Action Bar for Editor: Search Toggle */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '6px' }}>
-        <button
-          type="button"
-          className={`synop-editor-search-toggle ${searchOpen ? 'active' : ''}`}
-          onClick={handleToggleSearch}
-          title="Search bulletin text (Ctrl+F)"
-          aria-label="Search bulletin text"
-        >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <circle cx="11" cy="11" r="8" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-          </svg>
-          <span>Find (Ctrl+F)</span>
-        </button>
-      </div>
-
       {/* Editor Box */}
       <div
         className="synop-editor-box"
