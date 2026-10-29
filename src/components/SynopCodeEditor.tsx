@@ -381,6 +381,9 @@ export const SynopCodeEditor = forwardRef<HTMLTextAreaElement, SynopCodeEditorPr
             }
             return { text: token, type: 'tmin', isCurrentSearchMatch, isSearchMatch };
           }
+          if (/^6\d{3}[1-9/]$/.test(trimmed)) {
+            return { text: token, type: 'rainfall', isCurrentSearchMatch, isSearchMatch };
+          }
         } else if (inSec555) {
           if (/^0\d{4}$/.test(trimmed)) {
             const rVal = parseInt(trimmed.substring(1), 10) / 10;

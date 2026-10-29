@@ -357,7 +357,7 @@ export function generateDailyReports(
         relativeHumidity: utcSlot === '12Z' ? (effectiveRh1730 ?? persisted?.rh0830 ?? null) : (persisted?.rh0830 ?? null),
         visibilityCode: persisted?.visibilityCode ?? null,
         rainfall: utcSlot === '12Z'
-          ? (effectiveRainfall1730 ?? persisted?.rainfall0830 ?? persisted?.rainfall ?? null)
+          ? (effectiveRainfall1730 ?? null)
           : (persisted?.rainfall0830 ?? persisted?.rainfall ?? null),
         mslPressure: persisted?.mslPressure0830 ?? (utcSlot === '12Z' ? persisted?.mslPressure1730 : null) ?? null,
         rawSynop: persisted?.rawSynop03Z ?? persisted?.rawSynop12Z,
@@ -519,7 +519,7 @@ export function generateDailyReports(
         : null;
 
       const activeRainfall = (utcSlot === '12Z')
-        ? (rainfall1730 ?? rainfall0830 ?? null)
+        ? (rainfall1730 ?? null)
         : (rainfall0830 ?? null);
 
       return {

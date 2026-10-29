@@ -10,6 +10,7 @@ import {
   parseTemperatures,
   parseSection333,
   parseRainfall,
+  parse12UtcRainfall,
   calculateLegacyRelativeHumidity,
   splitBulletinIntoTelegrams,
 } from './synopDecoder.ts';
@@ -933,7 +934,7 @@ export function validateSingleTelegram(
 
   // 8. Rainfall Validation: Rule RAI-001, Rule RAI-002 & Regional Limits
   const precipIndicator = parsePrecipitationIndicator(tokens);
-  const rainfall = parseRainfall(tokens, precipIndicator);
+  const rainfall = utcSlot === '12Z' ? parse12UtcRainfall(tokens, precipIndicator) : parseRainfall(tokens, precipIndicator);
 
   // Check presence of Section 1 or Section 3 Group 6 (6RRRtR)
   const group6 = [...sec1Tokens.slice(2), ...sec3Tokens].find((t) => t.length === 5 && t.startsWith('6'));

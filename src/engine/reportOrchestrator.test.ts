@@ -12,6 +12,7 @@ import {
   type HistoricalObservationProvider,
   type OperationalReportsResult,
 } from './reportOrchestrator.ts';
+import { InMemoryObservationStore } from './observationStore.ts';
 import type { PentadNormal, PentadNormalProvider } from './climatology.ts';
 import {
   SUBDIVISIONS,
@@ -820,6 +821,67 @@ describe('Report Data Orchestrator Suite', () => {
       const summary = result.subdivisions[0].report2Summary;
       assert.equal(summary.tmin24hChangeAvg, -2.1);
       assert.equal(summary.tmin24hChangeClass, 'AF'); // Appreciable Fall (-4.0 to -2.1)
+    });
+  });
+
+  describe('12Z Cumulative Rainfall (6RRR/) in Consolidated & Subdivision Reports', () => {
+    it('populates 1730 IST rainfall in Consolidated & Subdivision reports from group 6RRR/ since 03Z', () => {
+      const store = new InMemoryObservationStore();
+      const reportingDate = '2026-07-15';
+
+      // 1. Ingest 03Z observation (morning): Nagpur (42867) has 12.0 mm 24h rainfall up to 0830 IST
+      const raw03Z = 'AAXX 15034\n42867 21996 00701 10326 20214 40082 333 20244 555 00120 10048=';
+      store.ingestBulletin('03Z', raw03Z, reportingDate);
+
+      // Verify 03Z report
+      const res03Z = generateDailyReports('', reportingDate, new TestPentadNormalProvider(), new TestHistoricalProvider(), {
+        utcSlot: '03Z',
+        observationStore: store,
+        subdivisionIds: ['26'],
+      });
+      const vidarbha03Z = res03Z.subdivisions[0];
+      const nagpur03Z = vidarbha03Z.report1Rows.find((r) => r.stationId === '42867')!;
+      assert.equal(nagpur03Z.rainfall0830, 12.0);
+      assert.equal(nagpur03Z.rainfall1730, null);
+      assert.equal(nagpur03Z.rainfall, 12.0);
+
+      // 2. Ingest 12Z observation (evening): Nagpur has group 6035/ (35.0 mm cumulative since 03Z)
+      // Wardha (42865) has i_R=3 (no precipitation, 0.0 mm)
+      // Akola (42933) has group 6005/ (5.0 mm cumulative since 03Z)
+      const raw12Z = `AAXX 15124
+42867 12996 00701 10360 20214 40082 333 10395 6035/=
+42865 32596 50901 10370 20160 40060 333 10410=
+42933 12996 01402 10350 20190 40070 333 10390 6005/=`;
+      store.ingestBulletin('12Z', raw12Z, reportingDate);
+
+      // 3. Generate 12Z operational reports
+      const res12Z = generateDailyReports('', reportingDate, new TestPentadNormalProvider(), new TestHistoricalProvider(), {
+        utcSlot: '12Z',
+        observationStore: store,
+        subdivisionIds: ['26'],
+      });
+
+      const vidarbha12Z = res12Z.subdivisions[0];
+      const nagpur12Z = vidarbha12Z.report1Rows.find((r) => r.stationId === '42867')!;
+      const wardha12Z = vidarbha12Z.report1Rows.find((r) => r.stationId === '42865')!;
+      const akola12Z = vidarbha12Z.report1Rows.find((r) => r.stationId === '42933')!;
+
+      // Nagpur: 0830 IST rainfall preserved from morning (12.0 mm), 1730 IST rainfall is 35.0 mm from 6035/
+      assert.equal(nagpur12Z.rainfall0830, 12.0, 'Must preserve morning 0830 rainfall');
+      assert.equal(nagpur12Z.rainfall1730, 35.0, 'Must obtain 1730 IST rainfall from group 6035/');
+      assert.equal(nagpur12Z.rainfall, 35.0, 'Active 12Z rainfall must be 35.0 mm');
+
+      // Wardha: i_R=3, no group 6 -> 0.0 mm
+      assert.equal(wardha12Z.rainfall1730, 0.0, 'Omitted group 6 with i_R=3 must decode to 0.0 mm');
+      assert.equal(wardha12Z.rainfall, 0.0);
+
+      // Akola: group 6005/ -> 5.0 mm
+      assert.equal(akola12Z.rainfall1730, 5.0, 'Must obtain 1730 IST rainfall from group 6005/');
+      assert.equal(akola12Z.rainfall, 5.0);
+
+      // 4. Verify Subdivision Summary at 12Z
+      assert.equal(vidarbha12Z.report2Summary.heaviestRainfall.value, 35.0);
+      assert.equal(vidarbha12Z.report2Summary.heaviestRainfall.stationNames, 'Nagpur');
     });
   });
 

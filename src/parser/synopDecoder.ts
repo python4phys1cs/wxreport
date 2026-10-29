@@ -316,6 +316,87 @@ export function parseRainfall(tokens: string[], precipIndicator: string | null):
 }
 
 /**
+ * Decodes group 6RRRt_R (e.g. 6RRR/) according to WMO Code Table 3590:
+ * - 000: 0.0 mm
+ * - 001 - 989: 1 to 989 mm (amount in whole millimeters)
+ * - 990: 0.0 mm (Trace, < 0.1 mm)
+ * - 991 - 999: 0.1 to 0.9 mm ((RRR - 990) / 10)
+ */
+export function decode6RGroup(token: string): number | null {
+  if (token.length !== 5 || !token.startsWith('6')) return null;
+  const rrrStr = token.substring(1, 4);
+  if (rrrStr.includes('/')) return null;
+  const rrr = parseInt(rrrStr, 10);
+  if (isNaN(rrr)) return null;
+
+  if (rrr === 0) return 0.0;
+  if (rrr <= 989) return rrr; // 1 to 989 mm
+  if (rrr === 990) return 0.0; // Trace (<0.1 mm)
+  if (rrr >= 991 && rrr <= 999) {
+    return Math.round((rrr - 990)) / 10; // 991 -> 0.1, 992 -> 0.2, ..., 999 -> 0.9
+  }
+  return null;
+}
+
+/**
+ * Decodes 12 UTC (1730 IST) Rainfall (mm) from group 6RRR/ for cumulative rainfall since 03Z:
+ * - In Indian SYNOP, 12Z cumulative rainfall since 0300 UTC is coded in group 6RRR/ (where tR = '/').
+ * - Searches Section 333 (first preference) and Section 1 for group 6RRR/ (or 6RRRtR).
+ * - If group 6RRR/ is present, decodes according to WMO Code Table 3590.
+ * - If group 6 is omitted and precipitation indicator i_R is '3' or '4', rainfall is 0.0 mm (dry / no precipitation).
+ * - Fallback: If group 6 is omitted but Section 555 group 0RRRR is present, decodes 0RRRR.
+ */
+export function parse12UtcRainfall(tokens: string[], precipIndicator: string | null): number | null {
+  const sec333Index = tokens.indexOf('333');
+  const sec555Index = tokens.indexOf('555');
+
+  // 1. Search Section 333 first for group 6RRR/
+  if (sec333Index !== -1) {
+    const end = sec555Index !== -1 ? sec555Index : tokens.length;
+    for (let i = sec333Index + 1; i < end; i++) {
+      const t = tokens[i];
+      if (/^6\d{3}[\/\d]$/.test(t)) {
+        const val = decode6RGroup(t);
+        if (val !== null) return val;
+      }
+    }
+  }
+
+  // 2. Search Section 1 for group 6RRR/
+  const endSec1 = sec333Index !== -1 ? sec333Index : (sec555Index !== -1 ? sec555Index : tokens.length);
+  for (let i = 2; i < endSec1; i++) {
+    const t = tokens[i];
+    if (/^6\d{3}[\/\d]$/.test(t)) {
+      const val = decode6RGroup(t);
+      if (val !== null) return val;
+    }
+  }
+
+  // 3. If group 6 is omitted and i_R is '3' or '4', precipitation was zero
+  if (precipIndicator === '3' || precipIndicator === '4') {
+    return 0.0;
+  }
+
+  // 4. Fallback to Section 555 group 0RRRR if present
+  if (sec555Index !== -1) {
+    for (let i = sec555Index + 1; i < tokens.length; i++) {
+      const t = tokens[i];
+      if (t.length === 5 && t.startsWith('0')) {
+        const rrrrStr = t.substring(1, 5);
+        if (!rrrrStr.includes('/')) {
+          const num = parseInt(rrrrStr, 10);
+          if (!isNaN(num)) {
+            return Math.round((num / 10) * 10) / 10;
+          }
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
  * Options for telegram and bulletin parsing.
  */
 export interface ParseTelegramOptions {
@@ -587,6 +668,11 @@ export function parse12UtcSingleTelegram(
     return null;
   }
 
+  const cleaned = rawTelegram.replace(/=/g, '').trim();
+  const tokens = cleaned.split(/\s+/).filter(Boolean);
+  const precipIndicator = parsePrecipitationIndicator(tokens);
+  const rainfall12Z = parse12UtcRainfall(tokens, precipIndicator);
+
   return {
     stationId: parsed.stationId,
     dryBulb: parsed.dryBulb,
@@ -594,7 +680,7 @@ export function parse12UtcSingleTelegram(
     relativeHumidity: parsed.relativeHumidity,
     // In 12 UTC SYNOP Section 333, group 1s_nTxTxTx reports today's maximum temperature
     tmax: parsed.tmaxPreviousDay,
-    rainfall: parsed.rainfall,
+    rainfall: rainfall12Z,
     mslPressure: parsed.mslPressure,
     visibilityCode: parsed.visibilityCode,
     rawSynop: parsed.rawSynop,

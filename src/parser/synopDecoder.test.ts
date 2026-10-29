@@ -12,6 +12,10 @@ import {
   parseMslPressure,
   parseRainfall,
   parseSection333,
+  decode6RGroup,
+  parse12UtcRainfall,
+  parse12UtcSingleTelegram,
+  parse12UtcBulletin,
   type ParsedStationObservation,
 } from './synopDecoder.ts';
 
@@ -553,6 +557,99 @@ describe('SYNOP 03 UTC Decoder Suite', () => {
       assert.equal(stn42782.dewPoint, 24.3);
       assert.equal(stn42782.tmin, 25.5);
       assert.equal(stn42782.rainfall, 4.6);
+    });
+  });
+
+  describe('7. 12 UTC Cumulative Rainfall (Group 6RRR/) & 12Z Bulletin Suite', () => {
+    it('decodes standard 6RRR/ groups into millimeters per WMO Code Table 3590', () => {
+      // 6000/ -> 0.0 mm
+      assert.equal(decode6RGroup('6000/'), 0.0);
+      // 6001/ -> 1.0 mm
+      assert.equal(decode6RGroup('6001/'), 1.0);
+      // 6005/ -> 5.0 mm
+      assert.equal(decode6RGroup('6005/'), 5.0);
+      // 6012/ -> 12.0 mm
+      assert.equal(decode6RGroup('6012/'), 12.0);
+      // 6034/ -> 34.0 mm
+      assert.equal(decode6RGroup('6034/'), 34.0);
+      // 6150/ -> 150.0 mm
+      assert.equal(decode6RGroup('6150/'), 150.0);
+      // 6989/ -> 989.0 mm
+      assert.equal(decode6RGroup('6989/'), 989.0);
+    });
+
+    it('decodes trace (990) and fractional millimeter increments (991-999)', () => {
+      // 990 = Trace (< 0.1 mm)
+      assert.equal(decode6RGroup('6990/'), 0.0);
+      // 991 = 0.1 mm
+      assert.equal(decode6RGroup('6991/'), 0.1);
+      // 992 = 0.2 mm
+      assert.equal(decode6RGroup('6992/'), 0.2);
+      // 995 = 0.5 mm
+      assert.equal(decode6RGroup('6995/'), 0.5);
+      // 999 = 0.9 mm
+      assert.equal(decode6RGroup('6999/'), 0.9);
+    });
+
+    it('returns null for unmeasurable slashes (6//// or 6///)', () => {
+      assert.equal(decode6RGroup('6///'), null);
+      assert.equal(decode6RGroup('6////'), null);
+      assert.equal(decode6RGroup('612/'), null);
+    });
+
+    it('extracts cumulative rainfall since 03Z from Section 333 group 6RRR/', () => {
+      const tokens = ['42867', '12996', '01402', '10360', '20180', '40050', '333', '10385', '6015/'];
+      const rf = parse12UtcRainfall(tokens, '1');
+      assert.equal(rf, 15.0);
+    });
+
+    it('extracts cumulative rainfall from Section 1 group 6RRR/ if reported in Section 1', () => {
+      const tokens = ['42867', '12996', '01402', '10360', '20180', '40050', '6008/', '333', '10385'];
+      const rf = parse12UtcRainfall(tokens, '1');
+      assert.equal(rf, 8.0);
+    });
+
+    it('forces 0.0 mm rainfall when group 6 is omitted and i_R = 3 or 4', () => {
+      const tokens3 = ['42867', '32996', '01402', '10360', '20180', '40050', '333', '10385'];
+      assert.equal(parse12UtcRainfall(tokens3, '3'), 0.0);
+
+      const tokens4 = ['42867', '42996', '01402', '10360', '20180', '40050', '333', '10385'];
+      assert.equal(parse12UtcRainfall(tokens4, '4'), 0.0);
+    });
+
+    it('decodes complete 12 UTC telegram extracting today Tmax and cumulative rainfall from 6RRR/', () => {
+      const telegram = '42867 12996 01402 10360 20180 40050 333 10412 6025/=';
+      const parsed = parse12UtcSingleTelegram(telegram);
+      assert.ok(parsed);
+      assert.equal(parsed.stationId, '42867');
+      assert.equal(parsed.dryBulb, 36.0);
+      assert.equal(parsed.dewPoint, 18.0);
+      assert.equal(parsed.relativeHumidity, 35);
+      assert.equal(parsed.mslPressure, 1005.0);
+      assert.equal(parsed.tmax, 41.2); // Section 333 10412
+      assert.equal(parsed.rainfall, 25.0); // Section 333 6025/ -> 25 mm cumulative since 03Z
+    });
+
+    it('decodes 12 UTC bulletin containing multiple stations with varying rainfall from 6RRR/', () => {
+      const rawBulletin = `AAXX 15124
+42867 12996 01402 10360 20180 40050 333 10412 6025/=
+42865 32596 50901 10370 20160 40060 333 10420=
+42933 12996 01402 10350 20190 40070 333 10395 6992/=`;
+
+      const list = parse12UtcBulletin(rawBulletin);
+      assert.equal(list.length, 3);
+
+      const nagpur = list.find((s) => s.stationId === '42867')!;
+      assert.equal(nagpur.tmax, 41.2);
+      assert.equal(nagpur.rainfall, 25.0);
+
+      const wardha = list.find((s) => s.stationId === '42865')!;
+      assert.equal(wardha.tmax, 42.0);
+      assert.equal(wardha.rainfall, 0.0); // i_R=3 -> 0.0 mm
+
+      const gondia = list.find((s) => s.stationId === '42933')!;
+      assert.equal(gondia.tmax, 39.5);
+      assert.equal(gondia.rainfall, 0.2); // 6992/ -> 0.2 mm
     });
   });
 

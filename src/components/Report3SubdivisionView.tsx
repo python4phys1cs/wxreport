@@ -410,7 +410,7 @@ export const Report3SubdivisionView: React.FC<Report3SubdivisionProps> = ({
                           className="cell-value"
                           style={{
                             backgroundColor:
-                              !isEditMode && row.rainfallColor !== 'white' ? row.rainfallColor : undefined,
+                              !isEditMode && is03Z && row.rainfallColor !== 'white' ? row.rainfallColor : undefined,
                           }}
                         >
                           {isEditMode ? (
@@ -418,8 +418,8 @@ export const Report3SubdivisionView: React.FC<Report3SubdivisionProps> = ({
                               type="number"
                               step="0.1"
                               min="0"
-                              className={`edit-cell-input ${(row.manualEdits?.rainfall0830 || row.manualEdits?.rainfall) ? 'is-manually-edited' : ''}`}
-                              value={row.rainfall0830 !== null && row.rainfall0830 !== undefined ? row.rainfall0830 : (row.rainfall !== null && row.rainfall !== undefined ? row.rainfall : '')}
+                              className={`edit-cell-input ${(row.manualEdits?.rainfall0830 || (is03Z && row.manualEdits?.rainfall)) ? 'is-manually-edited' : ''}`}
+                              value={is03Z ? (row.rainfall0830 !== null && row.rainfall0830 !== undefined ? row.rainfall0830 : (row.rainfall !== null && row.rainfall !== undefined ? row.rainfall : '')) : (row.rainfall0830 !== null && row.rainfall0830 !== undefined ? row.rainfall0830 : '')}
                               onChange={(e) => {
                                 const val = e.target.value.trim() === '' ? null : parseFloat(e.target.value);
                                 onUpdateStationValue?.(row.stationId, 'rainfall0830', isNaN(val as number) ? null : val);
@@ -428,14 +428,20 @@ export const Report3SubdivisionView: React.FC<Report3SubdivisionProps> = ({
                             />
                           ) : (
                             <span className="value-with-edit-tag">
-                              {formatValue(row.rainfall0830 ?? row.rainfall)}
+                              {formatValue(is03Z ? (row.rainfall0830 ?? row.rainfall) : row.rainfall0830)}
                             </span>
                           )}
                         </td>
 
                         {/* Rainfall: Last 9 Hours up to 1730 hrs IST (only in 12Z mode) */}
                         {!is03Z && (
-                          <td className="cell-value">
+                          <td
+                            className="cell-value"
+                            style={{
+                              backgroundColor:
+                                !isEditMode && !is03Z && row.rainfallColor !== 'white' ? row.rainfallColor : undefined,
+                            }}
+                          >
                             {isEditMode ? (
                               <input
                                 type="number"
