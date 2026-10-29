@@ -225,7 +225,12 @@ export const Report1StationTable: React.FC<Report1Props> = ({
                         key={row.stationId}
                         className={isLastStationOfPage1 ? 'consolidated-page1-break' : undefined}
                       >
-                        <td className="cell-station">{row.stationName.toUpperCase()}</td>
+                        <td className="cell-station">
+                          {row.stationName.toUpperCase()}
+                          {row.stationId && (
+                            <span className="station-code-suffix"> ({row.stationId})</span>
+                          )}
+                        </td>
 
                         {/* Maximum Temperature */}
                         <td

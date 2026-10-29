@@ -26,6 +26,19 @@
 
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  /* SYNOP Syntax Highlighting Token Colors */
+  --synop-header: #0284c7;
+  --synop-station: #0369a1;
+  --synop-section: #b45309;
+  --synop-drybulb: #d97706;
+  --synop-dewpoint: #0d9488;
+  --synop-tmax: #dc2626;
+  --synop-tmin: #2563eb;
+  --synop-rainfall: #15803d;
+  --synop-pressure: #7c3aed;
+  --synop-terminator: #64748b;
+  --synop-anomaly: #dc2626;
 }
 
 /* 1. Theme: Blue (Default / Station Navy) */
@@ -156,6 +169,19 @@
   --accent-active: #38bdf8;
   --bg-input: #0d131f;
   --bg-table-hover: #1e293b;
+
+  /* Night Theme SYNOP Token Colors */
+  --synop-header: #60a5fa;
+  --synop-station: #38bdf8;
+  --synop-section: #fbbf24;
+  --synop-drybulb: #fb923c;
+  --synop-dewpoint: #2dd4bf;
+  --synop-tmax: #f87171;
+  --synop-tmin: #60a5fa;
+  --synop-rainfall: #4ade80;
+  --synop-pressure: #c084fc;
+  --synop-terminator: #94a3b8;
+  --synop-anomaly: #f87171;
 }
 
 body {
@@ -980,6 +1006,87 @@ body {
   box-shadow: 0 0 0 1px var(--border-dark);
 }
 
+.control-textarea-synop::selection {
+  background-color: rgba(59, 130, 246, 0.35) !important;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+.control-textarea-synop::-moz-selection {
+  background-color: rgba(59, 130, 246, 0.35) !important;
+  color: transparent !important;
+}
+
+/* SYNOP Syntax Highlighting Font Colors & Formatting (No background boxes/objects) */
+.synop-token-normal {
+  color: var(--text-main);
+}
+
+.synop-token-header {
+  color: var(--synop-header);
+  font-weight: 700;
+}
+
+.synop-token-station {
+  color: var(--synop-station);
+  font-weight: 700;
+}
+
+.synop-token-sec333,
+.synop-token-sec555 {
+  color: var(--synop-section);
+  font-weight: 700;
+}
+
+.synop-token-temp-dry {
+  color: var(--synop-drybulb);
+}
+
+.synop-token-temp-dew {
+  color: var(--synop-dewpoint);
+}
+
+.synop-token-tmax {
+  color: var(--synop-tmax);
+  font-weight: 700;
+}
+
+.synop-token-tmin {
+  color: var(--synop-tmin);
+  font-weight: 700;
+}
+
+.synop-token-rainfall {
+  color: var(--synop-rainfall);
+  font-weight: 600;
+}
+
+.synop-token-pressure {
+  color: var(--synop-pressure);
+}
+
+.synop-token-terminator {
+  color: var(--synop-terminator);
+  font-weight: 700;
+}
+
+.synop-token-anomaly {
+  color: var(--synop-anomaly);
+  font-weight: 700;
+  text-decoration: underline wavy var(--synop-anomaly);
+  text-underline-offset: 3px;
+}
+
+.synop-token-search-match {
+  background-color: rgba(250, 204, 21, 0.45);
+  border-radius: 2px;
+}
+
+.synop-token-search-current {
+  background-color: rgba(245, 158, 11, 0.85);
+  border-radius: 2px;
+}
+
 .button-row {
   display: flex;
   gap: 0.5rem;
@@ -1339,6 +1446,16 @@ body {
   white-space: nowrap;
   color: var(--text-main);
   text-transform: uppercase;
+}
+
+.station-code-suffix {
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-left: 0.35rem;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .op-table th.col-rain-sub {
@@ -1897,6 +2014,13 @@ body {
     white-space: nowrap !important;
     color: #000000 !important;
     font-size: 7.2pt !important;
+  }
+
+  .station-code-suffix {
+    color: #666666 !important;
+    font-weight: 400 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   .op-table th.col-rain-sub {

@@ -527,7 +527,7 @@ export const SynopCodeEditor = forwardRef<HTMLTextAreaElement, SynopCodeEditorPr
               scrollbarWidth: 'thin',
               scrollbarColor: 'transparent transparent',
               pointerEvents: 'none',
-              color: 'transparent',
+              color: 'var(--text-main, #1e293b)',
               zIndex: 1,
             }}
           >
@@ -545,86 +545,38 @@ export const SynopCodeEditor = forwardRef<HTMLTextAreaElement, SynopCodeEditorPr
                   '\u00A0'
                 ) : (
                   lineTokens.map((t, tIdx) => {
-                    // Check search match styling first
+                    const tokenClasses: string[] = [];
+
+                    // Apply syntax font color and formatting classes
+                    if (t.type === 'header') tokenClasses.push('synop-token-header');
+                    else if (t.type === 'station') tokenClasses.push('synop-token-station');
+                    else if (t.type === 'sec333') tokenClasses.push('synop-token-sec333');
+                    else if (t.type === 'sec555') tokenClasses.push('synop-token-sec555');
+                    else if (t.type === 'temp-dry') tokenClasses.push('synop-token-temp-dry');
+                    else if (t.type === 'temp-dew') tokenClasses.push('synop-token-temp-dew');
+                    else if (t.type === 'tmax') tokenClasses.push('synop-token-tmax');
+                    else if (t.type === 'tmin') tokenClasses.push('synop-token-tmin');
+                    else if (t.type === 'rainfall') tokenClasses.push('synop-token-rainfall');
+                    else if (t.type === 'pressure') tokenClasses.push('synop-token-pressure');
+                    else if (t.type === 'terminator') tokenClasses.push('synop-token-terminator');
+                    else if (t.type === 'anomaly') tokenClasses.push('synop-token-anomaly');
+                    else tokenClasses.push('synop-token-normal');
+
+                    // Search match highlights (only search hits have a soft highlight, syntax tokens have no boxes)
                     if (t.isCurrentSearchMatch) {
-                      return (
-                        <mark
-                          key={tIdx}
-                          style={{
-                            backgroundColor: 'rgba(245, 158, 11, 0.85)',
-                            color: 'transparent',
-                            borderRadius: '2px',
-                            padding: '0 1px',
-                          }}
-                        >
-                          {t.text}
-                        </mark>
-                      );
+                      tokenClasses.push('synop-token-search-current');
+                    } else if (t.isSearchMatch) {
+                      tokenClasses.push('synop-token-search-match');
                     }
-                    if (t.isSearchMatch) {
-                      return (
-                        <mark
-                          key={tIdx}
-                          style={{
-                            backgroundColor: 'rgba(250, 204, 21, 0.45)',
-                            color: 'transparent',
-                            borderRadius: '2px',
-                            padding: '0 1px',
-                          }}
-                        >
-                          {t.text}
-                        </mark>
-                      );
-                    }
-
-                    if (t.type === 'normal') {
-                      return <span key={tIdx}>{t.text}</span>;
-                    }
-
-                    if (t.type === 'anomaly') {
-                      return (
-                        <mark
-                          key={tIdx}
-                          style={{
-                            backgroundColor: t.severity === 'error' ? 'rgba(239, 68, 68, 0.22)' : 'rgba(245, 158, 11, 0.22)',
-                            color: 'transparent',
-                            textDecoration: `underline wavy ${t.severity === 'error' ? '#ef4444' : '#f59e0b'}`,
-                            textDecorationSkipInk: 'none',
-                            padding: '0 1px',
-                            margin: 0,
-                            borderRadius: '2px',
-                          }}
-                          title={t.anomalyMessage}
-                        >
-                          {t.text}
-                        </mark>
-                      );
-                    }
-
-                    let bgTint = 'transparent';
-                    if (t.type === 'header') bgTint = 'rgba(59, 130, 246, 0.12)';
-                    else if (t.type === 'station') bgTint = 'rgba(2, 132, 199, 0.15)';
-                    else if (t.type === 'sec333' || t.type === 'sec555') bgTint = 'rgba(217, 119, 6, 0.18)';
-                    else if (t.type === 'temp-dry') bgTint = 'rgba(217, 119, 6, 0.12)';
-                    else if (t.type === 'temp-dew') bgTint = 'rgba(13, 148, 136, 0.12)';
-                    else if (t.type === 'tmax') bgTint = 'rgba(220, 38, 38, 0.12)';
-                    else if (t.type === 'tmin') bgTint = 'rgba(37, 99, 235, 0.12)';
-                    else if (t.type === 'rainfall') bgTint = 'rgba(21, 128, 61, 0.12)';
-                    else if (t.type === 'pressure') bgTint = 'rgba(124, 58, 237, 0.12)';
 
                     return (
-                      <mark
+                      <span
                         key={tIdx}
-                        style={{
-                          backgroundColor: bgTint,
-                          color: 'transparent',
-                          borderRadius: '2px',
-                          padding: '0 1px',
-                          margin: 0,
-                        }}
+                        className={tokenClasses.join(' ')}
+                        title={t.anomalyMessage}
                       >
                         {t.text}
-                      </mark>
+                      </span>
                     );
                   })
                 )}
@@ -633,11 +585,11 @@ export const SynopCodeEditor = forwardRef<HTMLTextAreaElement, SynopCodeEditorPr
           </div>
         )}
 
-        {/* Primary Input Textarea: Fully visible text, native cursor locked directly to characters */}
+        {/* Primary Input Textarea: Text is transparent when syntax highlighting is active so underlying font colors show, with transparent selection so text does not disappear */}
         <textarea
           ref={textareaRef}
           id="synop-bulletin"
-          className="control-textarea-synop"
+          className={`control-textarea-synop ${!syntaxHighlightingEnabled ? 'no-syntax' : ''}`}
           placeholder={placeholder}
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -669,7 +621,8 @@ export const SynopCodeEditor = forwardRef<HTMLTextAreaElement, SynopCodeEditorPr
             scrollbarWidth: 'thin',
             resize: 'none',
             backgroundColor: 'transparent',
-            color: 'var(--text-main, #1e293b)',
+            color: syntaxHighlightingEnabled ? 'transparent' : 'var(--text-main, #1e293b)',
+            WebkitTextFillColor: syntaxHighlightingEnabled ? 'transparent' : 'initial',
             caretColor: 'var(--text-main, #1e293b)',
             zIndex: 2,
           }}
