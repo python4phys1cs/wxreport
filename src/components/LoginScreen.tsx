@@ -88,11 +88,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                     </div>
                     <div className="identity-info">
                       <strong className="identity-name">{identity}</strong>
-                      <span className="identity-desc">
-                        {identity === 'AMSS Nagpur'
-                          ? 'Aviation Meteorological Supplementary Station'
-                          : 'Regional Weather Forecasting Centre'}
-                      </span>
+                      {identity !== 'AMSS Nagpur' && (
+                        <span className="identity-desc">
+                          Regional Weather Forecasting Centre
+                        </span>
+                      )}
                     </div>
                   </button>
                 );

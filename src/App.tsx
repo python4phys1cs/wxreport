@@ -84,10 +84,12 @@ function detectOverwrites(
       const existing = store.getStationObservation(parsed.stationId, date);
       if (existing) {
         const hasExisting03Z =
+          Boolean(existing.has03Z) ||
+          Boolean(existing.rawSynop03Z) ||
           (existing.tmin !== null && existing.tmin !== undefined) ||
           (existing.dryBulb0830 !== null && existing.dryBulb0830 !== undefined) ||
+          (existing.rh0830 !== null && existing.rh0830 !== undefined) ||
           (existing.rainfall0830 !== null && existing.rainfall0830 !== undefined) ||
-          (existing.rainfall !== null && existing.rainfall !== undefined) ||
           (existing.mslPressure0830 !== null && existing.mslPressure0830 !== undefined);
 
         if (hasExisting03Z) {
@@ -150,19 +152,27 @@ function detectOverwrites(
       const existing = store.getStationObservation(parsed.stationId, date);
       if (existing) {
         const hasExisting12Z =
-          (existing.tmax !== null && existing.tmax !== undefined) ||
+          Boolean(existing.has12Z) ||
+          Boolean(existing.rawSynop12Z) ||
+          (existing.tmax12Z !== null && existing.tmax12Z !== undefined) ||
+          (existing.tmaxSlot === '12Z' && existing.tmax !== null && existing.tmax !== undefined) ||
           (existing.rh1730 !== null && existing.rh1730 !== undefined) ||
-          (existing.rainfall1730 !== null && existing.rainfall1730 !== undefined);
+          (existing.rainfall1730 !== null && existing.rainfall1730 !== undefined) ||
+          (existing.dryBulb1730 !== null && existing.dryBulb1730 !== undefined) ||
+          (existing.mslPressure1730 !== null && existing.mslPressure1730 !== undefined);
 
         if (hasExisting12Z) {
           const diffs: OverwriteStationItem['diffs'] = [];
           if (parsed.tmax !== null && parsed.tmax !== undefined) {
-            diffs.push({
-              field: 'tmax',
-              label: 'Max Temp (Tmax)',
-              currentValue: existing.tmax !== null && existing.tmax !== undefined ? `${existing.tmax}°C` : null,
-              incomingValue: `${parsed.tmax}°C`,
-            });
+            const currentTmax12Z = existing.tmax12Z ?? (existing.tmaxSlot === '12Z' ? existing.tmax : null);
+            if (currentTmax12Z !== null && currentTmax12Z !== undefined) {
+              diffs.push({
+                field: 'tmax',
+                label: 'Max Temp (Tmax)',
+                currentValue: `${currentTmax12Z}°C`,
+                incomingValue: `${parsed.tmax}°C`,
+              });
+            }
           }
           if (parsed.relativeHumidity !== null && parsed.relativeHumidity !== undefined) {
             diffs.push({

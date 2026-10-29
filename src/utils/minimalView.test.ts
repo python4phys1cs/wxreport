@@ -226,4 +226,93 @@ describe('Minimal Observation View & Status Utilities', () => {
       assert.equal(getDefaultReportSlot(dateLate), '12Z');
     });
   });
+
+  describe('03Z vs 12Z Status Isolation and Siloing', () => {
+    it('20. 03Z Section 333 Tmax does NOT trigger 12Z Recorded status', () => {
+      const store = new InMemoryObservationStore();
+      // Record only 03Z observation which includes previous-day Section 333 Tmax
+      store.setStationObservationFromServer('2026-10-24', '42867', {
+        stationId: '42867',
+        stationName: 'Nagpur',
+        reportingDate: '2026-10-24',
+        has03Z: true,
+        tmin: 19.4,
+        dryBulb0830: 23.0,
+        rainfall0830: 0,
+        tmax: 34.0, // Stored from Section 333
+        tmax03Z: 34.0,
+        tmaxSlot: '03Z',
+      });
+
+      const status03Z = getSlotObservationStatus('2026-10-24', '03Z', store);
+      assert.equal(status03Z.isRecorded, true);
+      assert.equal(status03Z.statusLabel, 'Recorded (1 station)');
+
+      // 12Z must remain Pending even though obs.tmax is set from 03Z
+      const status12Z = getSlotObservationStatus('2026-10-24', '12Z', store);
+      assert.equal(status12Z.isRecorded, false);
+      assert.equal(status12Z.stationCount, 0);
+      assert.equal(status12Z.statusLabel, 'Pending');
+    });
+
+    it('21. 12Z 1730 rainfall does NOT trigger 03Z Recorded status', () => {
+      const store = new InMemoryObservationStore();
+      // Record only 12Z observation which includes 1730 IST rainfall
+      store.setStationObservationFromServer('2026-10-24', '42867', {
+        stationId: '42867',
+        stationName: 'Nagpur',
+        reportingDate: '2026-10-24',
+        has12Z: true,
+        tmax: 33.5,
+        tmax12Z: 33.5,
+        tmaxSlot: '12Z',
+        rh1730: 45,
+        dryBulb1730: 28.0,
+        rainfall: 5.0, // Generic display rainfall set by 12Z
+        rainfall1730: 5.0,
+      });
+
+      const status12Z = getSlotObservationStatus('2026-10-24', '12Z', store);
+      assert.equal(status12Z.isRecorded, true);
+      assert.equal(status12Z.statusLabel, 'Recorded (1 station)');
+
+      // 03Z must remain Pending even though obs.rainfall is set from 12Z
+      const status03Z = getSlotObservationStatus('2026-10-24', '03Z', store);
+      assert.equal(status03Z.isRecorded, false);
+      assert.equal(status03Z.stationCount, 0);
+      assert.equal(status03Z.statusLabel, 'Pending');
+    });
+
+    it('22. Ingesting raw 03Z bulletin marks 03Z Recorded and leaves 12Z Pending', () => {
+      const store = new InMemoryObservationStore();
+      const raw03Z = 'AAXX 24034\n42867 11560 82701 10230 20170 39850 40120 52015 60002 85670 333 10340 20194=';
+      store.ingestBulletin('03Z', raw03Z, '2026-10-24');
+
+      const status03Z = getSlotObservationStatus('2026-10-24', '03Z', store);
+      assert.equal(status03Z.isRecorded, true);
+      assert.equal(status03Z.stationCount, 1);
+      assert.equal(status03Z.statusLabel, 'Recorded (1 station)');
+
+      const status12Z = getSlotObservationStatus('2026-10-24', '12Z', store);
+      assert.equal(status12Z.isRecorded, false);
+      assert.equal(status12Z.stationCount, 0);
+      assert.equal(status12Z.statusLabel, 'Pending');
+    });
+
+    it('23. Ingesting raw 12Z bulletin marks 12Z Recorded and leaves 03Z Pending', () => {
+      const store = new InMemoryObservationStore();
+      const raw12Z = 'AAXX 24124\n42867 11560 82701 10290 20180 39850 40120 52015 333 10335=';
+      store.ingestBulletin('12Z', raw12Z, '2026-10-24');
+
+      const status12Z = getSlotObservationStatus('2026-10-24', '12Z', store);
+      assert.equal(status12Z.isRecorded, true);
+      assert.equal(status12Z.stationCount, 1);
+      assert.equal(status12Z.statusLabel, 'Recorded (1 station)');
+
+      const status03Z = getSlotObservationStatus('2026-10-24', '03Z', store);
+      assert.equal(status03Z.isRecorded, false);
+      assert.equal(status03Z.stationCount, 0);
+      assert.equal(status03Z.statusLabel, 'Pending');
+    });
+  });
 });

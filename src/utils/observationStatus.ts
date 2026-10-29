@@ -32,18 +32,24 @@ export function getSlotObservationStatus(
 
     if (slot === '03Z') {
       const has03Z =
-        obs.has03Z ||
+        Boolean(obs.has03Z) ||
+        Boolean(obs.rawSynop03Z) ||
         (obs.tmin !== null && obs.tmin !== undefined) ||
         (obs.dryBulb0830 !== null && obs.dryBulb0830 !== undefined) ||
+        (obs.rh0830 !== null && obs.rh0830 !== undefined) ||
         (obs.rainfall0830 !== null && obs.rainfall0830 !== undefined) ||
-        (obs.rainfall !== null && obs.rainfall !== undefined) ||
-        (obs.mslPressure0830 !== null && obs.mslPressure0830 !== undefined);
+        (obs.mslPressure0830 !== null && obs.mslPressure0830 !== undefined) ||
+        (obs.tmax03Z !== null && obs.tmax03Z !== undefined) ||
+        (obs.tmaxSlot === '03Z' && obs.tmax !== null && obs.tmax !== undefined);
       if (has03Z) count++;
     } else {
       // 12Z observation slot
       const has12Z =
-        obs.has12Z ||
-        (obs.tmax !== null && obs.tmax !== undefined) ||
+        Boolean(obs.has12Z) ||
+        Boolean(obs.rawSynop12Z) ||
+        (obs.tmax12Z !== null && obs.tmax12Z !== undefined) ||
+        (obs.tmaxSlot === '12Z' && obs.tmax !== null && obs.tmax !== undefined) ||
+        (obs.rh1730 !== null && obs.rh1730 !== undefined) ||
         (obs.dryBulb1730 !== null && obs.dryBulb1730 !== undefined) ||
         (obs.rainfall1730 !== null && obs.rainfall1730 !== undefined) ||
         (obs.mslPressure1730 !== null && obs.mslPressure1730 !== undefined);

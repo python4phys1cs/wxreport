@@ -34,6 +34,8 @@ interface SynopInputProps {
   syntaxHighlightingEnabled?: boolean;
   validationContext?: ValidationContext;
   isModalMode?: boolean;
+  isSearchOpen?: boolean;
+  onToggleSearch?: () => void;
   pendingOverwrites?: OverwriteStationItem[];
   onConfirmOverwrite?: () => void;
   onCancelOverwrite?: () => void;
@@ -72,6 +74,8 @@ export const SynopInput = forwardRef<HTMLTextAreaElement, SynopInputProps>(({
   syntaxHighlightingEnabled = true,
   validationContext,
   isModalMode = false,
+  isSearchOpen,
+  onToggleSearch,
   pendingOverwrites = [],
   onConfirmOverwrite,
   onCancelOverwrite,
@@ -273,7 +277,10 @@ export const SynopInput = forwardRef<HTMLTextAreaElement, SynopInputProps>(({
             validationContext={validationContext}
             syntaxHighlightingEnabled={syntaxHighlightingEnabled}
             disabled={isGenerating || isHistoricalLocked}
-            rows={isModalMode ? 7 : 5}
+            rows={isModalMode ? 16 : 5}
+            isModalMode={isModalMode}
+            isSearchOpen={isSearchOpen}
+            onToggleSearch={onToggleSearch}
             aria-label={is03Z ? '03 UTC SYNOP Bulletin input' : '12 UTC SYNOP Bulletin input'}
             placeholder={
               is03Z

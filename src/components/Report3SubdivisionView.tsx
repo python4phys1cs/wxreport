@@ -403,7 +403,7 @@ export const Report3SubdivisionView: React.FC<Report3SubdivisionProps> = ({
                         )}
 
                         {/* Visibility */}
-                        {showVisibility && <td>{row.visibilityText || (hasData ? '---' : '---')}</td>}
+                        {showVisibility && <td className="cell-value">{row.visibilityText || (hasData ? '---' : '---')}</td>}
 
                         {/* Rainfall: 0830 hrs IST */}
                         <td

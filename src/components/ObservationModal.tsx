@@ -53,9 +53,12 @@ export const ObservationModal: React.FC<ObservationModalProps> = ({
   const modalRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
+  const [isSearchOpen, setIsSearchOpen] = React.useState<boolean>(false);
+
   // Close on Escape key press
   useEffect(() => {
     if (!isOpen) return;
+    setIsSearchOpen(false);
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -108,16 +111,30 @@ export const ObservationModal: React.FC<ObservationModalProps> = ({
               )}
             </div>
           </div>
-          <button
-            ref={closeButtonRef}
-            type="button"
-            className="obs-modal-close-btn"
-            onClick={onClose}
-            aria-label="Close observation input window"
-            title="Close (Esc)"
-          >
-            ✕
-          </button>
+          <div className="obs-modal-header-actions">
+            <button
+              type="button"
+              className={`obs-modal-search-btn ${isSearchOpen ? 'active' : ''}`}
+              onClick={() => setIsSearchOpen((prev) => !prev)}
+              title="Search stations or codes in bulletin (Ctrl+F)"
+              aria-label="Search stations or codes in bulletin"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+            </button>
+            <button
+              ref={closeButtonRef}
+              type="button"
+              className="obs-modal-close-btn"
+              onClick={onClose}
+              aria-label="Close observation input window"
+              title="Close (Esc)"
+            >
+              ✕
+            </button>
+          </div>
         </header>
 
         <div className="obs-modal-body">
@@ -135,6 +152,8 @@ export const ObservationModal: React.FC<ObservationModalProps> = ({
             syntaxHighlightingEnabled={syntaxHighlightingEnabled}
             validationContext={validationContext}
             isModalMode={true}
+            isSearchOpen={isSearchOpen}
+            onToggleSearch={() => setIsSearchOpen((prev) => !prev)}
             pendingOverwrites={pendingOverwrites}
             onConfirmOverwrite={onConfirmOverwrite}
             onCancelOverwrite={onCancelOverwrite}

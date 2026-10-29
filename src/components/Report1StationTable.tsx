@@ -340,7 +340,7 @@ export const Report1StationTable: React.FC<Report1Props> = ({
                         )}
 
                         {/* Visibility */}
-                        {showVisibility && <td>{row.visibilityText || (hasData ? '---' : '---')}</td>}
+                        {showVisibility && <td className="cell-value">{row.visibilityText || (hasData ? '---' : '---')}</td>}
 
                         {/* Rainfall */}
                         {is03Z ? (
