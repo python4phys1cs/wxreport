@@ -603,10 +603,20 @@ describe('SYNOP 03 UTC Decoder Suite', () => {
       assert.equal(rf, 15.0);
     });
 
-    it('extracts cumulative rainfall from Section 1 group 6RRR/ if reported in Section 1', () => {
-      const tokens = ['42867', '12996', '01402', '10360', '20180', '40050', '6008/', '333', '10385'];
-      const rf = parse12UtcRainfall(tokens, '1');
-      assert.equal(rf, 8.0);
+    it('never extracts rainfall from Section 1 groups and strictly requires Section 333 6RRR/ format', () => {
+      // Wind group 62302 in Section 1 followed by Section 333 without 6RRR/
+      const tokens = ['42931', '32996', '62302', '10288', '20175', '40063', '86010', '333', '10306', '59007'];
+      const rf = parse12UtcRainfall(tokens, '3');
+      assert.equal(rf, 0.0); // Dry because precipIndicator is '3' and Section 1 '62302' is ignored
+    });
+
+    it('correctly decodes Buldhana 12Z SYNOP telegram with 0.0 cumulative rain (not 230)', () => {
+      const buldhanaSynop = '42931 32996 62302 10288 20175 40063 86010 333 10306 59007=';
+      const parsed = parse12UtcSingleTelegram(buldhanaSynop);
+      assert.ok(parsed);
+      assert.equal(parsed.stationId, '42931');
+      assert.equal(parsed.tmax, 30.6);
+      assert.equal(parsed.rainfall, 0.0); // Must be 0.0 (dry), NEVER 230 from wind group 62302!
     });
 
     it('forces 0.0 mm rainfall when group 6 is omitted and i_R = 3 or 4', () => {

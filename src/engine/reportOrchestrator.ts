@@ -43,10 +43,15 @@ import type { ObservationStore, UtcSlot, PersistedStationObservation } from './o
  * The pentad for Tmin always uses reportingDateStr (D1's morning observation).
  */
 function resolveTmaxPentad(reportingDateStr: string, eveningDateStr: string, utcSlot: UtcSlot): string {
-  // At 03Z, Tmax comes from previous day (eveningDateStr = D0)
-  // At 12Z, Tmax comes from current day (reportingDateStr = D1)
-  const tmaxBaseDate = utcSlot === '03Z' ? eveningDateStr : reportingDateStr;
-  return resolvePentad(tmaxBaseDate, 'tmax');
+  if (utcSlot === '12Z') {
+    // At 12Z, Tmax is recorded on reportingDateStr (today).
+    // Today's calendar pentad is resolvePentad(reportingDateStr, 'tmin')
+    return resolvePentad(reportingDateStr, 'tmin');
+  } else {
+    // At 03Z, Tmax is from yesterday (eveningDateStr).
+    // In legacy PHP, resolvePentad(reportingDateStr, 'tmax') evaluates yesterday's pentad using D1's date('z').
+    return resolvePentad(reportingDateStr, 'tmax');
+  }
 }
 
 /**
@@ -110,7 +115,8 @@ function resolveTmax24hPrior(
   utcSlot: UtcSlot,
   currentTmax: number | null,
   histDm2: HistoricalObservation | null | undefined,
-  histDe2: HistoricalObservation | null | undefined
+  histDe2: HistoricalObservation | null | undefined,
+  persisted?: PersistedStationObservation | null
 ): number | null {
   if (currentTmax === null) return null;
   // Legacy PHP: $tmax_ch = round($r4['tmax'] - $r6['tmax'], 1)
@@ -126,11 +132,18 @@ function resolveTmax24hPrior(
   //   $De1 = D1, $De2 = D0
   //   Current Tmax (from 12Z Section 333) = D1's evening max
   //   Prior Tmax = D0's evening max → histDm2 (eveningDateStr)
+  //   Fallback: persisted.tmax03Z / persisted.tmaxPreviousDay (reported in D1 03Z bulletin)
   //   Fallback: histDe2 (dateEveningPriorStr/D-1) if D0 data missing
   if (utcSlot === '03Z') {
     return histDe2?.tmax ?? histDm2?.tmax ?? null;
   } else {
-    return histDm2?.tmax ?? histDe2?.tmax ?? null;
+    return (
+      histDm2?.tmax ??
+      persisted?.tmax03Z ??
+      persisted?.tmaxPreviousDay ??
+      histDe2?.tmax ??
+      null
+    );
   }
 }
 
@@ -267,7 +280,7 @@ export function generateDailyReports(
 
   // 3. Resolve pentads for departure calculations
   const pentadTmin = resolvePentad(reportingDateStr, 'tmin');
-  const pentadTmax = resolvePentad(reportingDateStr, 'tmax');
+  const pentadTmax = resolveTmaxPentad(reportingDateStr, eveningDateStr, utcSlot);
 
   let enrichedObservations: EnrichedObservation[] = [];
   const enrichedByStationId = new Map<string, EnrichedObservation>();
@@ -479,7 +492,7 @@ export function generateDailyReports(
       // Legacy PHP: $tmax_ch = round($r4['tmax'] - $r6['tmax'], 1)
       // At 03Z: current Tmax is D0 (eveningDateStr), prior is D-1 (dateEveningPriorStr) → histDe2
       // At 12Z: current Tmax is D1 (reportingDateStr), prior is D0 (eveningDateStr) → histDm2
-      const tmax24hPrior = resolveTmax24hPrior(utcSlot, currentTmax, histDm2, histDe2);
+      const tmax24hPrior = resolveTmax24hPrior(utcSlot, currentTmax, histDm2, histDe2, persisted);
       
       let tmaxDepartureStr: string | null = null;
       if (currentTmax !== null && currentTmax !== undefined && !isNaN(currentTmax)) {
@@ -497,7 +510,17 @@ export function generateDailyReports(
       const currentTmin = persisted ? persisted.tmin : (enriched?.tmin ?? null);
       // 24-hour Tmin change: compares current minimum with D0's 03Z minimum. If either is unavailable, null.
       const tmin24hPrior = currentTmin !== null ? (histDm2?.tmin ?? null) : null;
-      const tminDepartureStr = currentTmin !== null ? (enriched?.tminDeparture ?? null) : null;
+      let tminDepartureStr: string | null = null;
+      if (currentTmin !== null && currentTmin !== undefined && !isNaN(currentTmin)) {
+        if (enriched?.tminDeparture && enriched.tmin === currentTmin) {
+          tminDepartureStr = enriched.tminDeparture;
+        } else {
+          const normalTmin = normalProvider?.getNormal(stnMeta.id, pentadTmin);
+          tminDepartureStr = normalTmin?.tmin !== null && normalTmin?.tmin !== undefined
+            ? formatDeparture(calculateDeparture(currentTmin, normalTmin.tmin))
+            : '---';
+        }
+      }
 
       // RH at 0830 IST: Use D1's 03Z RH
       const rh0830 = persisted ? persisted.rh0830 : (utcSlot === '03Z' ? (enriched?.relativeHumidity ?? null) : null);

@@ -341,43 +341,34 @@ export function decode6RGroup(token: string): number | null {
 /**
  * Decodes 12 UTC (1730 IST) Rainfall (mm) from group 6RRR/ for cumulative rainfall since 03Z:
  * - In Indian SYNOP, 12Z cumulative rainfall since 0300 UTC is coded in group 6RRR/ (where tR = '/').
- * - Searches Section 333 (first preference) and Section 1 for group 6RRR/ (or 6RRRtR).
- * - If group 6RRR/ is present, decodes according to WMO Code Table 3590.
- * - If group 6 is omitted and precipitation indicator i_R is '3' or '4', rainfall is 0.0 mm (dry / no precipitation).
- * - Fallback: If group 6 is omitted but Section 555 group 0RRRR is present, decodes 0RRRR.
+ * - Group 6RRR/ must be taken from Section 333 ONLY. Section 1 wind groups (Nddff) or other groups starting with 6 must NEVER be parsed as rainfall.
+ * - String required formatting: 6RRR/ (starts with '6', followed by 3 digits for RRR, ending strictly with '/').
+ * - If group 6RRR/ is present in Section 333, decodes according to WMO Code Table 3590.
+ * - If group 6RRR/ is omitted and precipitation indicator i_R is '3' or '4', rainfall is 0.0 mm (dry / no precipitation).
+ * - Fallback: If group 6RRR/ is omitted in Section 333 but Section 555 group 0RRRR is present, decodes 0RRRR.
  */
 export function parse12UtcRainfall(tokens: string[], precipIndicator: string | null): number | null {
   const sec333Index = tokens.indexOf('333');
   const sec555Index = tokens.indexOf('555');
 
-  // 1. Search Section 333 first for group 6RRR/
+  // 1. Search Section 333 ONLY for group 6RRR/ (format strictly: 6RRR/)
   if (sec333Index !== -1) {
     const end = sec555Index !== -1 ? sec555Index : tokens.length;
     for (let i = sec333Index + 1; i < end; i++) {
       const t = tokens[i];
-      if (/^6\d{3}[\/\d]$/.test(t)) {
+      if (/^6\d{3}\/$/.test(t)) {
         const val = decode6RGroup(t);
         if (val !== null) return val;
       }
     }
   }
 
-  // 2. Search Section 1 for group 6RRR/
-  const endSec1 = sec333Index !== -1 ? sec333Index : (sec555Index !== -1 ? sec555Index : tokens.length);
-  for (let i = 2; i < endSec1; i++) {
-    const t = tokens[i];
-    if (/^6\d{3}[\/\d]$/.test(t)) {
-      const val = decode6RGroup(t);
-      if (val !== null) return val;
-    }
-  }
-
-  // 3. If group 6 is omitted and i_R is '3' or '4', precipitation was zero
+  // 2. If group 6RRR/ is omitted in Section 333 and i_R is '3' or '4', precipitation was zero
   if (precipIndicator === '3' || precipIndicator === '4') {
     return 0.0;
   }
 
-  // 4. Fallback to Section 555 group 0RRRR if present
+  // 3. Fallback to Section 555 group 0RRRR if present
   if (sec555Index !== -1) {
     for (let i = sec555Index + 1; i < tokens.length; i++) {
       const t = tokens[i];
