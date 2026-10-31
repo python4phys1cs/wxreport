@@ -22,6 +22,10 @@ import { shiftDateString } from '../components/SynopInput.tsx';
 import { formatExtremeDistrictList, formatSummaryExtreme } from '../components/Report2SummaryTable.tsx';
 import { cleanExtremeStationList, formatSubdivisionSummaryLabel } from '../components/Report3SubdivisionView.tsx';
 import { WORKSTATION_IDENTITIES } from '../server/authService.ts';
+import { InMemoryObservationStore, MemoryArchiveStorageProvider } from './observationStore.ts';
+import { generateDailyReports, resolveTmin24hPrior, resolveTmax24hPrior } from './reportOrchestrator.ts';
+import { defaultPentadNormalProvider } from '../providers/pentadNormalProvider.ts';
+import { InMemoryHistoricalProvider, SAMPLE_HISTORICAL_OBSERVATIONS } from '../providers/fixtureProvider.ts';
 
 describe('Targeted Corrections Regression Test Suite', () => {
 
@@ -332,4 +336,106 @@ describe('Targeted Corrections Regression Test Suite', () => {
       assert.match(synopContent, /className="checker-issues-table"/);
     });
   });
+
+  describe('6. Minimum Temperature 24h Departure & Climatological Departure Integrity', () => {
+    it('resolves prior 24-hr Minimum Temperature accurately using resolveTmin24hPrior', () => {
+      // 1. When histDm2 has tmin
+      assert.equal(resolveTmin24hPrior(22.0, { stationId: '42931', date: '2026-10-30', tmin: 20.5 }, null), 20.5);
+
+      // 2. When histDm2 is null but prevEveningObs has tmin
+      assert.equal(
+        resolveTmin24hPrior(
+          22.0,
+          null,
+          {
+            stationId: '42931',
+            reportingDate: '2026-10-30',
+            tmin: 19.8,
+            tminDate: '2026-10-30',
+            tminSlot: '03Z',
+            tmax: 32.0,
+            tmaxDate: '2026-10-30',
+            tmaxSlot: '12Z',
+            rh0830: 60,
+            rh1730: 45,
+            dryBulb0830: null,
+            dewPoint0830: null,
+            dryBulb1730: null,
+            dewPoint1730: null,
+            rainfall0830: 0,
+            rainfall1730: 0,
+            rainfall: 0,
+            mslPressure0830: null,
+            mslPressure1730: null,
+            visibilityCode: null,
+            lastUpdatedSlot: '12Z',
+            lastUpdatedDate: '2026-10-30',
+          }
+        ),
+        19.8
+      );
+
+      // 3. When currentTmin is null
+      assert.equal(resolveTmin24hPrior(null, { stationId: '42931', date: '2026-10-30', tmin: 20.5 }, null), null);
+
+      // 4. When all prior sources are missing
+      assert.equal(resolveTmin24hPrior(22.0, null, null, null), null);
+    });
+
+    it('verifies Buldhana (42931) at 12Z displays valid min temp 24h change and departure without showing ---', () => {
+      const storage = new MemoryArchiveStorageProvider();
+      const store = new InMemoryObservationStore([], storage);
+      const normalProvider = defaultPentadNormalProvider;
+      const historicalProvider = new InMemoryHistoricalProvider(SAMPLE_HISTORICAL_OBSERVATIONS);
+
+      const d0 = '2026-10-30';
+      const d1 = '2026-10-31';
+
+      // 1. Ingest D0 03Z (yesterday morning): Buldhana Tmin = 21.0 °C
+      const bulletinD0_03Z = 'AAXX 30034\n42931 32996 22302 10252 20189 40149 82010 333 10320 20210 58007 555 10738=';
+      store.ingestBulletin('03Z', bulletinD0_03Z, d0);
+
+      // 2. Ingest D1 03Z (today morning): Buldhana Tmin = 22.5 °C
+      const bulletinD1_03Z = 'AAXX 31034\n42931 32996 22302 10252 20189 40149 82010 333 10330 20225 58007 555 10738=';
+      store.ingestBulletin('03Z', bulletinD1_03Z, d1);
+
+      // 3. Ingest D1 12Z (today evening): Buldhana telegram provided by user
+      const bulletinD1_12Z = 'AAXX 31124\n42931 32996 62302 10288 20175 40063 86010 333 10306 59007=';
+      store.ingestBulletin('12Z', bulletinD1_12Z, d1);
+
+      // Generate 12Z reports
+      const res = generateDailyReports('', d1, normalProvider, historicalProvider, {
+        utcSlot: '12Z',
+        observationStore: store,
+      });
+
+      // Find Buldhana (42931) in Vidarbha (26)
+      const vidarbha = res.subdivisions.find((s) => s.subdivision.id === '26');
+      assert.ok(vidarbha, 'Vidarbha subdivision must exist');
+
+      const buldhanaRow = vidarbha.report1Rows.find((r) => r.stationId === '42931');
+      assert.ok(buldhanaRow, 'Buldhana must exist in report rows');
+
+      // Tmin should be preserved from 03Z
+      assert.equal(buldhanaRow.tmin, 22.5);
+
+      // 24h change should be 22.5 - 21.0 = +1.5 (NOT null or ---)
+      assert.equal(buldhanaRow.tmin24hChange, 1.5);
+      assert.notEqual(buldhanaRow.tmin24hChange, null);
+
+      // Climatological departure should be computed against normal (NOT ---)
+      assert.ok(buldhanaRow.tminDeparture);
+      assert.notEqual(buldhanaRow.tminDeparture, '---');
+
+      // Tmax at 12Z should be 30.6
+      assert.equal(buldhanaRow.tmax, 30.6);
+      assert.ok(buldhanaRow.tmaxDeparture);
+      assert.notEqual(buldhanaRow.tmaxDeparture, '---');
+
+      // 12Z cumulative rainfall should NOT be 230 mm (Section 1 group 62302 must be ignored)
+      assert.equal(buldhanaRow.rainfall1730, 0);
+      assert.notEqual(buldhanaRow.rainfall1730, 230);
+    });
+  });
 });
+

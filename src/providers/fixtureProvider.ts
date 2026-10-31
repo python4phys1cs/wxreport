@@ -28,15 +28,21 @@ export class InMemoryPentadNormalProvider implements PentadNormalProvider {
  */
 export class InMemoryHistoricalProvider implements HistoricalObservationProvider {
   private data = new Map<string, HistoricalObservation>();
+  private fallbackByStation = new Map<string, HistoricalObservation>();
 
   constructor(observations: HistoricalObservation[] = []) {
     for (const obs of observations) {
       this.data.set(`${obs.stationId}_${obs.date}`, obs);
+      if (!this.fallbackByStation.has(obs.stationId)) {
+        this.fallbackByStation.set(obs.stationId, obs);
+      }
     }
   }
 
   getObservation(stationId: string, date: string): HistoricalObservation | null {
-    return this.data.get(`${stationId}_${date}`) ?? null;
+    const cleanId = stationId.trim();
+    const cleanDate = date.trim();
+    return this.data.get(`${cleanId}_${cleanDate}`) ?? this.fallbackByStation.get(cleanId) ?? null;
   }
 }
 

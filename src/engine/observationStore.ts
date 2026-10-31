@@ -1787,10 +1787,14 @@ export class InMemoryObservationStore implements ObservationStore {
           this.history.get(key)?.tmax ??
           archivedObs.tmax ??
           null;
+        const histTmin =
+          archivedObs.tmin ??
+          this.history.get(key)?.tmin ??
+          null;
         return {
           stationId: cleanStn,
           date: cleanDate,
-          tmin: archivedObs.tmin,
+          tmin: histTmin,
           tmax: histTmax,
           rainfall: archivedObs.rainfall,
           rh0830: archivedObs.rh0830,
@@ -1800,7 +1804,31 @@ export class InMemoryObservationStore implements ObservationStore {
     }
 
     // 2. Check seeded baseline history
-    return this.history.get(key) ?? null;
+    const baseHist = this.history.get(key);
+    if (baseHist) {
+      return baseHist;
+    }
+
+    // 3. Check latest recorded observation prior to date in the archive
+    const latestPrior = this.getLatestObservationForStation(cleanStn, cleanDate);
+    if (latestPrior && (latestPrior.tmin !== null || latestPrior.tmax !== null)) {
+      return {
+        stationId: cleanStn,
+        date: latestPrior.reportingDate,
+        tmin: latestPrior.tmin,
+        tmax:
+          latestPrior.tmax12Z ??
+          (latestPrior.tmaxSlot === '12Z' ? latestPrior.tmax : null) ??
+          latestPrior.tmaxPreviousDay ??
+          latestPrior.tmax ??
+          null,
+        rainfall: latestPrior.rainfall,
+        rh0830: latestPrior.rh0830,
+        rh1730: latestPrior.rh1730,
+      };
+    }
+
+    return null;
   }
 
   /**

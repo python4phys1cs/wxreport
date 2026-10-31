@@ -111,7 +111,7 @@ function isTmaxDisplayable(
  *   - At 03Z: prior Tmax is in histDe2 (D-1 evening) — correct per legacy De2
  *   - At 12Z: prior Tmax is in histDm2 (D0 morning, which also has D0's Tmax) — correct per legacy De1
  */
-function resolveTmax24hPrior(
+export function resolveTmax24hPrior(
   utcSlot: UtcSlot,
   currentTmax: number | null,
   histDm2: HistoricalObservation | null | undefined,
@@ -145,6 +145,33 @@ function resolveTmax24hPrior(
       null
     );
   }
+}
+
+/**
+ * Resolves prior 24-hour Minimum Temperature for change calculations:
+ * D1 Tmin is compared against D0 Tmin (observed at 0830 IST on D0 / eveningDateStr).
+ *
+ * Resolves prior 24-hour Minimum Temperature across:
+ * 1. histDm2.tmin (from observationStore archive / baseline provider for eveningDateStr)
+ * 2. prevEveningObs.tmin (from observationStore station observation for eveningDateStr)
+ * 3. histDe2.tmin (historical observation for dateEveningPriorStr)
+ */
+export function resolveTmin24hPrior(
+  currentTmin: number | null,
+  histDm2: HistoricalObservation | null | undefined,
+  prevEveningObs: PersistedStationObservation | null | undefined,
+  histDe2?: HistoricalObservation | null | undefined
+): number | null {
+  if (currentTmin === null || currentTmin === undefined || isNaN(currentTmin)) {
+    return null;
+  }
+  const val =
+    histDm2?.tmin ??
+    prevEveningObs?.tmin ??
+    histDe2?.tmin ??
+    null;
+
+  return val !== null && !isNaN(val) ? val : null;
 }
 
 /**
@@ -496,7 +523,7 @@ export function generateDailyReports(
       
       let tmaxDepartureStr: string | null = null;
       if (currentTmax !== null && currentTmax !== undefined && !isNaN(currentTmax)) {
-        if (enriched?.tmaxDeparture && enriched.tmax === currentTmax) {
+        if (enriched?.tmaxDeparture && enriched.tmaxDeparture !== '---' && enriched.tmax === currentTmax) {
           tmaxDepartureStr = enriched.tmaxDeparture;
         } else {
           const normalTmax = normalProvider?.getNormal(stnMeta.id, resolveTmaxPentad(reportingDateStr, eveningDateStr, utcSlot));
@@ -508,11 +535,11 @@ export function generateDailyReports(
 
       // Minimum Temperature: D1's 03Z observation
       const currentTmin = persisted ? persisted.tmin : (enriched?.tmin ?? null);
-      // 24-hour Tmin change: compares current minimum with D0's 03Z minimum. If either is unavailable, null.
-      const tmin24hPrior = currentTmin !== null ? (histDm2?.tmin ?? null) : null;
+      // 24-hour Tmin change: compares current minimum with D0's 03Z minimum.
+      const tmin24hPrior = resolveTmin24hPrior(currentTmin, histDm2, prevEveningObs, histDe2);
       let tminDepartureStr: string | null = null;
       if (currentTmin !== null && currentTmin !== undefined && !isNaN(currentTmin)) {
-        if (enriched?.tminDeparture && enriched.tmin === currentTmin) {
+        if (enriched?.tminDeparture && enriched.tminDeparture !== '---' && enriched.tmin === currentTmin) {
           tminDepartureStr = enriched.tminDeparture;
         } else {
           const normalTmin = normalProvider?.getNormal(stnMeta.id, pentadTmin);

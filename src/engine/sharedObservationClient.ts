@@ -11,6 +11,7 @@ import {
   type UtcSlot,
   type DuplicateHandlingPolicy,
 } from './observationStore.ts';
+import { getPreviousDayDateString } from './climatology.ts';
 
 export interface StorageStatus {
   configured: boolean;
@@ -90,10 +91,10 @@ export class SharedObservationClient {
   }
 
   /**
-   * Loads authoritative observations for a specific reporting date from PostgreSQL
+   * Fetches observations and raw bulletins for a single date from PostgreSQL
    * and synchronizes into local client store.
    */
-  async loadDateObservations(date: string): Promise<{
+  async fetchAndStoreSingleDate(date: string): Promise<{
     provider: 'supabase' | 'local';
     observations: PersistedStationObservation[];
     rawBulletins: Record<string, string>;
@@ -136,6 +137,30 @@ export class SharedObservationClient {
   }
 
   /**
+   * Loads authoritative observations for a specific reporting date from PostgreSQL
+   * along with prior dates for 24h comparisons, and synchronizes into local client store.
+   */
+  async loadDateObservations(date: string): Promise<{
+    provider: 'supabase' | 'local';
+    observations: PersistedStationObservation[];
+    rawBulletins: Record<string, string>;
+    archivedDates: string[];
+  }> {
+    const cleanDate = date.trim();
+    const prevDate = getPreviousDayDateString(cleanDate);
+    const priorPriorDate = getPreviousDayDateString(prevDate);
+
+    // Fetch primary date and prior days in parallel so 24-hr comparisons have complete historical data
+    const [primaryResult] = await Promise.all([
+      this.fetchAndStoreSingleDate(cleanDate),
+      this.fetchAndStoreSingleDate(prevDate).catch(() => null),
+      this.fetchAndStoreSingleDate(priorPriorDate).catch(() => null),
+    ]);
+
+    return primaryResult;
+  }
+
+  /**
    * Submits a SYNOP bulletin to be saved in PostgreSQL and merged into client store.
    */
   async ingestBulletin(
@@ -165,6 +190,12 @@ export class SharedObservationClient {
 
     // Mirror to client-side store
     defaultObservationStore.ingestBulletin(utcSlot, rawBulletin, reportingDate);
+
+    // Ensure prior day is loaded into store for prior 24-hr comparisons if not already present
+    const prevDate = getPreviousDayDateString(reportingDate.trim());
+    if (!defaultObservationStore.getArchivedDates().includes(prevDate)) {
+      this.fetchAndStoreSingleDate(prevDate).catch(() => null);
+    }
 
     return result;
   }
